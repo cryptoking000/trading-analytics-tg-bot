@@ -11,7 +11,7 @@ def load_chains(file_path):
         print(f"Error loading chains: {e}")
         return []
 
-def fetch_trading_pair_data(pair_address):
+async def fetch_trading_pair_data(pair_address):
     file_path = 'chains.json'
     chains = load_chains(file_path)
     """Fetch trading pair data for a given token address on specified blockchains."""

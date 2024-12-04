@@ -20,6 +20,7 @@ def is_hexadecimal(text):
 # Define the functions to be used by the bot commands and messages
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     hex_data = update.message.text
+    print(hex_data)
     trading_data = fetch_trading_pair_data(hex_data)
     await update.message.reply_text(f'Trading Data: {trading_data}')
 

@@ -25,9 +25,17 @@ def is_hexadecimal(text):
 # Bot command and message handlers
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     hex_data = update.message.text
-    print(hex_data)
-    trading_data = fetch_trading_pair_data(hex_data)
-    await update.message.reply_text(f'Trading Data: {trading_data}')
+    print(f'hex_data: {hex_data}')
+    
+    try:
+        trading_data = await fetch_trading_pair_data(hex_data)
+        print(f'data--->{trading_data}')
+        await update.message.reply_text(trading_data)
+        
+    except Exception as e:
+        print(f'Error fetching trading data: {e}')
+        update.message.reply_text('Failed to fetch trading data.')
+
 
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

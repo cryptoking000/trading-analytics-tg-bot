@@ -39,7 +39,10 @@ async def fetch_trading_pair_data(  pair_address: str):
             volume = data.get("volume", {}).get("usd24h", "N/A")
             ath = data.get("ath", "N/A")
             ath_time = data.get("athChange", {}).get("time", "N/A")
-            one_hour_change = data.get("priceChange", {}).get("1h", "N/A")
+            one_hour_change = data.get("priceChange", {}).get("h1", "N/A")
+            one_hour_volume = data.get("volume", {}).get("h1", "N/A")
+            one_hour_buy_number = data.get("txns", {}).get("h1", {}).get("buys", "N/A")
+            one_hour_sell_number = data.get("txns", {}).get("h1",{}).get("sells", "N/A")
             market_link = f"https://dexscreener.com/ethereum/{data.get('address', '')}"
             banner_url = data.get("info",{}).get("imageUrl", None)
             socials = data.get("info", {}).get("socials", [])
@@ -59,7 +62,7 @@ async def fetch_trading_pair_data(  pair_address: str):
                 f"💦 Liq: `${liquidity}`\n"
                 f"📊 Vol: `${volume}`\n"
                 f"⛰️ ATH: `${ath} [{ath_time} ago]`\n"
-                f"📈 1H: `{one_hour_change}%`\n"
+                f"📈 1H: `{one_hour_change}%⋅${one_hour_volume}🅑{one_hour_buy_number}Ⓢ{one_hour_sell_number}`\n"
                 f"🧰 More:[🎨]({banner_url})[💬]({telegram_url})[🌍]({origin_url}) [🐦]({twitter_url})"
             )
             

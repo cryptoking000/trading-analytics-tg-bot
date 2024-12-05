@@ -24,19 +24,30 @@ def is_hexadecimal(text):
 
 
 # Bot command and message handlers
+
+
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     hex_data = update.message.text
     print(f'hex_data: {hex_data}')
     
     try:
+        # Fetch trading data
         trading_data = await fetch_trading_pair_data(hex_data)
         print(f'data--->{trading_data}')
-        await update.message.reply_text(trading_data,   parse_mode=ParseMode.MARKDOWN)
-        
+
+        # Extract banner_url from the fetched data
+        banner_url = trading_data[1]  # Replace with dynamic URL if available
+       
+        if banner_url:
+            # Send photo with caption
+            await update.message.reply_photo(photo=banner_url, caption=trading_data[0], parse_mode=ParseMode.MARKDOWN)
+        else:
+            # Send only text if no photo URL
+            await update.message.reply_text(trading_data[0], parse_mode=ParseMode.MARKDOWN)
+    
     except Exception as e:
         print(f'Error fetching trading data: {e}')
-        update.message.reply_text('Failed to fetch trading data.')
-
+        await update.message.reply_text('Failed to fetch trading data.')
 
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

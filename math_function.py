@@ -1,7 +1,7 @@
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-def calculate_token_age(token_created_at):
+def calculate_age(token_created_at):
     # Convert token_created_at (milliseconds since epoch) to datetime
     token_creation_date = datetime.fromtimestamp(token_created_at / 1000.0)
     
@@ -25,14 +25,16 @@ def calculate_token_age(token_created_at):
     
     return token_age
 
-# Example usage
-token_created_at = 1690335081000  # Example timestamp in milliseconds
-token_age = calculate_token_age(token_created_at)
-# print(f"Token Age: {token_age}")
-
 def format_number(value_string):
     """Format a number into a more readable string with K or M suffix."""
-    value=float(value_string)
+    try:
+        # Attempt to convert the value_string to a float
+        value = float(value_string)
+    except (ValueError, TypeError):
+        # Return 'N/A' or a default value if conversion fails
+        return 'N/A'
+
+    # Format the number based on its magnitude
     if value < 1_000:
         return f"{value:.0f}"  # Return as is if less than 1000
     elif value < 1_000_000:
@@ -40,5 +42,8 @@ def format_number(value_string):
     else:
         return f"{value / 1_000_000:.1f}M"  # Convert to millions
 
-
-
+# Example usage
+print(format_number("15000"))      # Output: "15.0K"
+print(format_number("25000000"))   # Output: "25.0M"
+print(format_number("N/A"))         # Output: "N/A"
+print(format_number("invalid"))     # Output: "N/A"

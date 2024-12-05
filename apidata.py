@@ -1,7 +1,7 @@
 import requests
 import json
 from telegram import Bot, InputMediaPhoto
-from math_function import calculate_token_age
+from math_function import calculate_token_age, format_number
 async def dex_search(pair_address):
     api_searchurl = f"https://api.dexscreener.com/latest/dex/search?q={pair_address}"
     response = requests.get(api_searchurl)
@@ -65,11 +65,11 @@ async def fetch_trading_pair_data(  pair_address: str):
                 f"🟢 [{name}](https://t.me/CAMMT_bot?start={pair_address})[${fdv}/4%] ${symbol}\n"
                 f"🌍 {chain} @ {dexid} {labels}\n"
                 f"💰 USD: `${price}`\n"
-                f"💎 FDV: `${fdv}`\n"
-                f"💦 Liq: `${liquidity}`\n"
-                f"📊 Vol: `${volume}`🕰️ Age:`{calculate_token_age(token_age)}`\n"
-                f"⛰️ ATH: `${ath} [{ath_time} ago]`\n"
-                f"📈 1H: `{one_hour_change}%`⋅`${one_hour_volume}`🅑`{one_hour_buy_number}`Ⓢ`{one_hour_sell_number}`\n"
+                f"💎 FDV: `${format_number(fdv)}`\n"
+                f"💦 Liq: `${format_number(liquidity)}`\n"
+                f"📊 Vol: `${format_number(volume)}`🕰️ Age:`{calculate_token_age(token_age)}`\n"
+                f"⛰️ ATH: `${format_number(ath)} [{ath_time} ago]`\n"
+                f"📈 1H: `{one_hour_change}%`⋅`${format_number(one_hour_volume)}`🅑`{one_hour_buy_number}`Ⓢ`{one_hour_sell_number}`\n"
                 f"🧰 More:[🎨]({banner_url})[💬]({telegram_url})[🌍]({origin_url}) [🐦]({twitter_url})"
             )
             

@@ -30,8 +30,9 @@ token_created_at = 1690335081000  # Example timestamp in milliseconds
 token_age = calculate_token_age(token_created_at)
 # print(f"Token Age: {token_age}")
 
-def format_number(value):
+def format_number(value_string):
     """Format a number into a more readable string with K or M suffix."""
+    value=float(value_string)
     if value < 1_000:
         return f"{value:.0f}"  # Return as is if less than 1000
     elif value < 1_000_000:

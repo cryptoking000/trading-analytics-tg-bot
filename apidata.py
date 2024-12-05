@@ -17,7 +17,7 @@ async def dex_search(pair_address):
     else:
         print("Failed to search dex.")
 
-async def fetch_trading_pair_data(bot: Bot, chat_id: int, pair_address: str):
+async def fetch_trading_pair_data(  pair_address: str):
     chain = await dex_search(pair_address)
     if not chain:
         return
@@ -41,18 +41,26 @@ async def fetch_trading_pair_data(bot: Bot, chat_id: int, pair_address: str):
             ath_time = data.get("athChange", {}).get("time", "N/A")
             one_hour_change = data.get("priceChange", {}).get("1h", "N/A")
             market_link = f"https://dexscreener.com/ethereum/{data.get('address', '')}"
-            banner_url = data.get("banner", None)
+            banner_url = data.get("info",{}).get("imageUrl", None)
+            socials = data.get("info", {}).get("socials", [])
+            origin_url = data.get("info", {}).get("websites", None)
 
+            # Loop through the socials to find the Telegram and Twitter URLs
+            for social in socials:
+                if social.get("type",None) == "telegram":
+                    telegram_url = social.get("url")
+                elif social.get("type") == "twitter":
+                    twitter_url = social.get("url")
             result = (
-                f"🔵 [{name}](https://dexscreener.com) `[${fdv}/4%] ${symbol}`\n"
+                f"🟢 [{name}](https://t.me/CAMMT_bot?start={pair_address})[${fdv}/4%] ${symbol}\n"
                 f"🌍 [{chain} @ Syncswap]\n\n"
-                f"💵 USD: ${price}\n"
-                f"💎 FDV: ${fdv}\n"
-                f"💧 Liq: ${liquidity}\n"
-                f"📊 Vol: ${volume}\n"
-                f"🏔 ATH: ${ath} [{ath_time} ago]\n"
-                f"📈 1H: {one_hour_change}%\n"
-                f"🔗 [More Info]({market_link})"
+                f"💰 USD: `${price}`\n"
+                f"💎 FDV: `${fdv}`\n"
+                f"💦 Liq: `${liquidity}`\n"
+                f"📊 Vol: `${volume}`\n"
+                f"⛰️ ATH: `${ath} [{ath_time} ago]`\n"
+                f"📈 1H: `{one_hour_change}%`\n"
+                f"🧰 More:[🎨]({banner_url})[💬]({telegram_url})[🌍]({origin_url}) [🐦]({twitter_url})"
             )
             
             

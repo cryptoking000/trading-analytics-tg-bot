@@ -11,8 +11,7 @@ from telegram.constants import ParseMode
 from database_managment import Add_User_Start
 from apidata import fetch_trading_pair_data
 from sendDM import send_dm
-from payment import payment_start, button_handler
-
+from subscribe import payment_start, button_handler
 
 # Define a custom filter for hexadecimal strings
 def is_hexadecimal(text):
@@ -71,7 +70,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
     await update.message.reply_text(text=message, parse_mode=ParseMode.MARKDOWN)
 
-
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_name = update.message.from_user.first_name
     await update.message.reply_text(f'Hello {user_name}! How can I assist you today?')
@@ -110,6 +108,7 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help))
     application.add_handler(CommandHandler("subscribe", start_payment))
+    
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'\A[0-9A-Fa-fx]+\Z'), reply))
     

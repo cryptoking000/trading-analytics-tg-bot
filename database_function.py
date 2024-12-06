@@ -37,7 +37,7 @@ class UserDatabaseManager:
                 cursor.execute('''
                     INSERT INTO users 
                     (chat_id, username, expired_time, paid, transaction_key)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?)
                     ON CONFLICT(chat_id) DO UPDATE SET
                         username=excluded.username,
                         expired_time=excluded.expired_time,

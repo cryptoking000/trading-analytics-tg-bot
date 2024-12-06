@@ -24,8 +24,6 @@ def is_hexadecimal(text):
 
 
 # Bot command and message handlers
-
-
 async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     hex_data = update.message.text
     print(f'hex_data: {hex_data}')
@@ -49,6 +47,13 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         print(f'Error fetching trading data: {e}')
         await update.message.reply_text('Failed to fetch trading data.')
 
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await Add_User_Start(update=update, context=context)
+    # message = (
+    #    ' Run /help to see available commands.'
+    # )
+    # await update.message.reply_text(text=message, parse_mode=ParseMode.MARKDOWN)
+
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text('Hello, How can I help with?')
@@ -56,20 +61,11 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text('Hello, How `can` I help with? \n/start\n/hello')
 
-
 async def start_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await send_dm()
 
-
 async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await payment_start(update=update, context=context)
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await Add_User_Start(update=update, context=context)
-    message = (
-       ' Run /help to see available commands.'
-    )
-    await update.message.reply_text(text=message, parse_mode=ParseMode.MARKDOWN)
 
 def main():
     application = ApplicationBuilder().token('7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4').build()

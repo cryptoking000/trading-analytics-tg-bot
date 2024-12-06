@@ -41,9 +41,3 @@ def format_number(value_string):
         return f"{value / 1_000:.1f}K"  # Convert to thousands
     else:
         return f"{value / 1_000_000:.1f}M"  # Convert to millions
-
-# Example usage
-print(format_number("15000"))      # Output: "15.0K"
-print(format_number("25000000"))   # Output: "25.0M"
-print(format_number("N/A"))         # Output: "N/A"
-print(format_number("invalid"))     # Output: "N/A"

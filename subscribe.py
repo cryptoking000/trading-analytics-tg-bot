@@ -67,7 +67,7 @@ async def button_handler(update: Update, context):
 
         # Convert USD to crypto amounts
         crypto_amounts = convert_usd_to_crypto(price_usd)
-        print(crypto_amounts)
+        # print(crypto_amounts)
         message = (
             f"Please send {crypto_amounts[chain]} {chain} (${price_usd}) to the following address to confirm your subscription.\n\n"
             f"`{wallet_addresses[chain]}`\n\n"

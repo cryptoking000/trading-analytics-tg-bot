@@ -2,48 +2,83 @@ import asyncio
 import telegram
 import requests
 import json
+from database_function import db
 
 TOKEN = "7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4"
-DEFAULT_CHAT_ID = '7244291557'  # Default chat_id if no recent messages
+ # Default chat_id if no recent messages
 
 URL_TELEGRAM_BASE = f'https://api.telegram.org/bot{TOKEN}'
 URL_GET_UPDATES = f'{URL_TELEGRAM_BASE}/getUpdates'
 
-bot = telegram.Bot(token=TOKEN)
+# Flag to control the DM service
+dm_task = None
 
 async def send_message(text, chat_id):
-    # Send async message using the bot
-    await bot.send_message(chat_id=chat_id, text=text)
+    try:
+        # Create a new bot instance for each message
+        temp_bot = telegram.Bot(token=TOKEN)
+        # Send async message using the temporary bot
+        await temp_bot.send_message(chat_id=chat_id, text=text)
+        return True
+    except telegram.error.TelegramError as e:
+        print(f"Failed to send message to {chat_id}: {str(e)}")
+        return False
 
 async def send_dm():
-    response = requests.get(URL_GET_UPDATES)
+    try:
+        # Get all users from database
+        users = db.get_all_users()
+        processed_chat_ids = set()
 
-    if response.status_code == 200:
-        data = response.json()
+        if not users:
+            print("No users found in database.")
+            return
 
-        result = data.get('result')
-        processed_chat_ids = set()  # Set to store processed chat IDs
+        for user in users:
+            chat_id = user.get('chat_id')
+            if not chat_id:
+                print(f"Invalid chat_id for user: {user}")
+                continue
+                
+            is_paid = user.get('paid', False)
+            username = user.get('username', 'User')
 
-        if result:
-            for res in result:
-                chat_id = res.get('message', {}).get('chat', {}).get('id', DEFAULT_CHAT_ID)
-
-                if chat_id not in processed_chat_ids:
-                    print(f"Sending message to chat ID: {chat_id}")
-                    await send_message(text='Hi! How are you? I am a bot.', chat_id=chat_id)
-                    processed_chat_ids.add(chat_id)  # Mark this chat ID as processed
+            if chat_id not in processed_chat_ids:
+                message = (
+                    f"Hello {username}!\n\n"
+                    f"{' Thank you for being our premium member!' if is_paid else '💫 Upgrade to premium for more features!'}\n"
+                    f"Use /help to see available commands."
+                )
+                
+                if await send_message(text=message, chat_id=chat_id):
+                    processed_chat_ids.add(chat_id)
+                    print(f"Successfully sent message to {username} (ID: {chat_id})")
                 else:
-                    print(f"Already sent a message to chat ID: {chat_id}")
+                    print(f"Failed to send message to {username} (ID: {chat_id})")
+            
+    except Exception as e:
+        print(f"Error in send_dm: {str(e)}")
 
-        else:
-            print(f"No new messages found. Using default chat ID: {DEFAULT_CHAT_ID}.")
-            if DEFAULT_CHAT_ID not in processed_chat_ids:
-                await send_message(text='Hi! How are you? I am a bot.', chat_id=DEFAULT_CHAT_ID)
-                processed_chat_ids.add(DEFAULT_CHAT_ID)
-            else:
-                print(f"Already sent a message to default chat ID: {DEFAULT_CHAT_ID}")
-    else:
-        print("Failed to fetch updates.")
+async def stop_dm_service():
+    global dm_task
+    if dm_task:
+        dm_task.cancel()
+        dm_task = None
+    print("DM service stopped successfully")
 
-# if __name__ == '__main__':
-#     asyncio.run(send_dm())
+async def periodic_dm():
+    try:
+        await send_dm()
+        await asyncio.sleep(20)  # Wait for 20 seconds before next execution
+        asyncio.create_task(periodic_dm())  # Schedule next execution
+    except asyncio.CancelledError:
+        print("DM service cancelled")
+    except Exception as e:
+        print(f"Error in DM service: {str(e)}")
+        await asyncio.sleep(5)  # Short sleep on error
+        asyncio.create_task(periodic_dm())  # Retry on error
+
+async def start_dm_service():
+    global dm_task
+    print("DM service starting...")
+    dm_task = asyncio.create_task(periodic_dm())

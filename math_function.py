@@ -71,7 +71,7 @@ def get_token_prices():
         for symbol in tokens:
             prices[symbol] = None
             
-    print(prices)
+    # print(prices)
     return prices
 
 def convert_usd_to_crypto(usd_amount):

@@ -10,7 +10,7 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 from database_managment import Add_User_Start
 from apidata import fetch_trading_pair_data
-from sendDM import send_dm
+from sendDM import start_dm_service, stop_dm_service
 from subscribe import payment_start, button_handler
 
 # Define a custom filter for hexadecimal strings
@@ -94,7 +94,9 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
 
 async def start_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await send_dm()
+    await start_dm_service()
+async def stop_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await stop_dm_service()
 
 async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await payment_start(update=update, context=context)
@@ -108,6 +110,8 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help))
     application.add_handler(CommandHandler("subscribe", start_payment))
+    application.add_handler(CommandHandler("start_sendDm", start_sendDm))
+    application.add_handler(CommandHandler("stop_sendDm", stop_sendDm))
     
     application.add_handler(CallbackQueryHandler(button_handler))
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'\A[0-9A-Fa-fx]+\Z'), reply))
@@ -118,3 +122,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

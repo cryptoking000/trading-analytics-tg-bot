@@ -55,7 +55,30 @@ class UserDatabaseManager:
         except Exception as e:
             print(f"Error adding/updating user: {e}")
             return False
-
+    def get_all_users(self) -> list:
+        """Get all users from database"""
+        try:
+            with sqlitecloud.connect(self.connection_string) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT * FROM users')
+                results = cursor.fetchall()
+                return [
+                    {
+                        "id": row[0],
+                        "chat_id": row[1],
+                        "username": row[2],
+                        "expired_time": row[3],
+                        "paid": row[4],
+                        "transaction_key": row[5],
+                        "registration_date": row[6],
+                        "last_active": row[7]
+                    }
+                    for row in results
+                ]
+        except Exception as e:
+            print(f"Error getting all users: {e}")
+            return []
+        
     def get_user(self, chat_id: int) -> Optional[Dict[str, Any]]:
         """Get user data by chat_id"""
         try:

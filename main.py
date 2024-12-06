@@ -8,7 +8,7 @@ from telegram.ext import (
     filters,
 )
 from telegram.constants import ParseMode
-
+from database_managment import Add_User_Start
 from apidata import fetch_trading_pair_data
 from sendDM import send_dm
 from payment import payment_start, button_handler
@@ -65,9 +65,9 @@ async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await payment_start(update=update, context=context)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await Add_User_Start(update=update, context=context)
     message = (
        ' Run /help to see available commands.'
-
     )
     await update.message.reply_text(text=message, parse_mode=ParseMode.MARKDOWN)
 

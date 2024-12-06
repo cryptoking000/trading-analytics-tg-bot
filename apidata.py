@@ -20,6 +20,7 @@ async def fetch_trading_pair_data(pair_address):
             fdv = data.get("fdv", "N/A")
             liquidity = data.get("liquidity", {}).get("usd", "N/A")
             base = data.get("liquidity", {}).get("base", "N/A")
+            quote = data.get("liquidity", {}).get("quote", "N/A")
             volume = data.get("volume", {}).get("usd24h", "N/A")
             ath = data.get("ath", "N/A")
             ath_time = data.get("athChange", {}).get("time", "N/A")
@@ -47,7 +48,7 @@ async def fetch_trading_pair_data(pair_address):
                 f"🌍 {chain} @ {dexid} {labels}\n"
                 f"💰 USD: `${price}`\n"
                 f"💎 FDV: `${format_number(fdv)}`\n"
-                f"💦 Liq: `${format_number(liquidity)}[x{base}]`\n"
+                f"💦 Liq: `${format_number(liquidity)}[x{base}x{quote}]`\n"
                 f"📊 Vol: `${format_number(volume)}`🕰️ Age:`{calculate_age(token_age)}`\n"
                 f"⛰️ ATH: `${format_number(ath)} [{ath_time} ago]`\n"
                 f"📈 1H: `{one_hour_change}%`⋅`${format_number(one_hour_volume)}`🅑`{one_hour_buy_number}`Ⓢ`{one_hour_sell_number}`\n"

@@ -1,3 +1,4 @@
+import requests
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
@@ -41,3 +42,52 @@ def format_number(value_string):
         return f"{value / 1_000:.1f}K"  # Convert to thousands
     else:
         return f"{value / 1_000_000:.1f}M"  # Convert to millions
+
+def get_token_prices():
+    """Fetch current prices for ETH, SOL, and BNB (BSC) in USD."""
+    tokens = {
+        'ETH': 'ethereum',
+        'BSC': 'binancecoin', 
+        'SOL': 'solana'
+    }
+    
+    prices = {}
+    try:
+        ids = ','.join(tokens.values())
+        url = f"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd"
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            for symbol, coin_id in tokens.items():
+                if coin_id in data:
+                    prices[symbol] = data[coin_id]['usd']
+                else:
+                    prices[symbol] = None
+        else:
+            for symbol in tokens:
+                prices[symbol] = None
+    except Exception as e:
+        print(f"Error fetching prices: {e}")
+        for symbol in tokens:
+            prices[symbol] = None
+            
+    print(prices)
+    return prices
+
+def convert_usd_to_crypto(usd_amount):
+    """Convert USD amount to equivalent amounts in ETH, SOL, and BSC (BNB)."""
+    prices = get_token_prices()
+    conversions = {}
+    
+    for symbol, price in prices.items():
+        if price:
+            crypto_amount = usd_amount / price
+            # Format with appropriate decimal places
+            if symbol in ['ETH', 'BSC']:
+                conversions[symbol] = round(crypto_amount, 4)
+            else:  # SOL can use more decimal places
+                conversions[symbol] = round(crypto_amount, 2)
+        else:
+            conversions[symbol] = None
+            
+    return conversions

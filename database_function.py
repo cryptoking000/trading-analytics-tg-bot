@@ -1,5 +1,6 @@
 import sqlitecloud
 from typing import Optional, Dict, Any
+from datetime import datetime
 
 class UserDatabaseManager:
     """Database manager class for SQLite Cloud operations"""
@@ -20,7 +21,9 @@ class UserDatabaseManager:
                         username TEXT,
                         expired_time TIMESTAMP,
                         paid BOOLEAN DEFAULT FALSE,
-                        transaction_key TEXT
+                        transaction_key TEXT,
+                        registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        last_active TIMESTAMP
                     )
                 ''')
                 conn.commit()
@@ -29,21 +32,24 @@ class UserDatabaseManager:
 
     def add_user(self, chat_id: int, username: str = None, 
                  expired_time: str = None, paid: bool = False,
-                 transaction_key: str = None) -> bool:
+                 transaction_key: str = None,
+                 last_active: str = None,
+                ) -> bool:
         """Add or update a user in the database"""
         try:
             with sqlitecloud.connect(self.connection_string) as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
                     INSERT INTO users 
-                    (chat_id, username, expired_time, paid, transaction_key)
-                    VALUES (?, ?, ?, ?, ?)
+                    (chat_id, username, expired_time, paid, transaction_key, last_active)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     ON CONFLICT(chat_id) DO UPDATE SET
                         username=excluded.username,
                         expired_time=excluded.expired_time,
                         paid=excluded.paid,
-                        transaction_key=excluded.transaction_key
-                ''', (chat_id, username, expired_time, paid, transaction_key))
+                        transaction_key=excluded.transaction_key,
+                        last_active=excluded.last_active
+                ''', (chat_id, username, expired_time, paid, transaction_key, last_active))
                 conn.commit()
                 return True
         except Exception as e:
@@ -67,7 +73,9 @@ class UserDatabaseManager:
                         "expired_time": result[3],
                         "paid": result[4],
                         "transaction_key": result[5],
-                           }
+                        "registration_date": result[6],
+                        "last_active": result[7]
+                    }
                 return None
         except Exception as e:
             print(f"Error getting user: {e}")

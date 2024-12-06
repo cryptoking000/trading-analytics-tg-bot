@@ -49,17 +49,33 @@ async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await Add_User_Start(update=update, context=context)
-    # message = (
-    #    ' Run /help to see available commands.'
-    # )
-    # await update.message.reply_text(text=message, parse_mode=ParseMode.MARKDOWN)
+    message = (
+       ' Run /help to see available commands.'
+    )
+    await update.message.reply_text(text=message, parse_mode=ParseMode.MARKDOWN)
 
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text('Hello, How can I help with?')
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text('Hello, How `can` I help with? \n/start\n/hello')
+    message = (
+        "🤖 *Welcome to CryptoAdvisor Bot!*\n\n"
+        "I am your AI-powered cryptocurrency market assistant. Here's what I can do for you:\n\n"
+        "📊 *Key Features:*\n"
+        "• Real-time cryptocurrency analysis and monitoring\n"
+        "• Market trend detection and insights\n" 
+        "• Detailed metrics including market cap, volume, ATH\n"
+        "• AI-powered price movement predictions\n"
+        "• Premium features available via subscription\n\n"
+        "🔍 *Available Commands:*\n"
+        "• /start - Begin interaction\n"
+        "• /hello - Get a greeting\n"
+        "• /help - Show this help message\n"
+        "• /subscribe - Access premium features\n\n"
+        "Simply send me a token address to get detailed analytics!"
+    )
+    await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
 
 async def start_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await send_dm()
@@ -79,8 +95,8 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'\A[0-9A-Fa-fx]+\Z'), reply))
     
     # Start the Bot
+    print("👟👟👟Bot is running...")
     application.run_polling()
-
 
 if __name__ == '__main__':
     main()

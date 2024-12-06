@@ -111,4 +111,4 @@ class UserDatabaseManager:
             return False
 
 # Create a singleton instance
-db = UserDatabaseManager('sqlitecloud://cqxv3cfvhz.sqlite.cloud:8860/telegram-database1?apikey=LatG9mr0j4cxwXHUjj9713u08qd5NmKtXfynbbabZP0')
+db = UserDatabaseManager('sqlitecloud://cqxv3cfvhz.sqlite.cloud:8860/users-database?apikey=LatG9mr0j4cxwXHUjj9713u08qd5NmKtXfynbbabZP0')

@@ -6,7 +6,7 @@ from datetime import datetime
 async def Add_User_Start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     chat_id = update.message.chat_id
     username = update.message.from_user.username
-    connection_string = 'sqlitecloud://cqxv3cfvhz.sqlite.cloud:8860/telegram-database1?apikey=LatG9mr0j4cxwXHUjj9713u08qd5NmKtXfynbbabZP0'
+    connection_string = 'sqlitecloud://cqxv3cfvhz.sqlite.cloud:8860/users-database?apikey=LatG9mr0j4cxwXHUjj9713u08qd5NmKtXfynbbabZP0'
     db.__init__(connection_string)
 
     # Check if user already exists
@@ -17,7 +17,7 @@ async def Add_User_Start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     # Add new user to database with registration date
     last_active = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    # Set last_active to registration time
+    print("last_active", last_active)# Set last_active to registration time
     success = db.add_user(
         chat_id=chat_id,
         username=username,

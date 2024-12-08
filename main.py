@@ -11,7 +11,7 @@ from telegram.constants import ParseMode
 from database_management import add_user_start
 from apidata import fetch_trading_pair_data
 from sendDM import start_dm_service, stop_dm_service
-from subscribe import payment_start, button_handler
+from subscribe import payment_start, button_handler, message_handler
 
 # Define a custom filter for hexadecimal strings
 def is_hexadecimal(text):
@@ -115,6 +115,7 @@ def main():
     
     application.add_handler(CallbackQueryHandler(button_handler))
     # application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'\A[0-9A-Fa-fx]+\Z'), reply))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
     
     # Start the Bot
     print("👟👟Bot is running...")

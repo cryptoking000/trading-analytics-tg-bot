@@ -179,27 +179,60 @@ class UserDatabaseManager:
         except Exception as e:
             print(f"Error getting user: {e}")
             return None
-
-    def update_user_payment(self, chat_id: int, paid: bool, 
-                          transaction_hash: str, expired_time: str) -> bool:
-        """Update user payment status"""
+    def update_user_payment(self, chat_id: int, **kwargs) -> bool:
+        """Update user payment status and related fields"""
         try:
             with sqlitecloud.connect(self.connection_string) as conn:
                 cursor = conn.cursor()
-                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                cursor.execute('''
+                
+                # Build dynamic update query based on provided fields
+                update_fields = []
+                values = []
+                
+                if 'paid' in kwargs:
+                    update_fields.append('paid = ?')
+                    values.append(kwargs['paid'])
+                    
+                if 'payment_method' in kwargs:
+                    update_fields.append('payment_method = ?')
+                    values.append(kwargs['payment_method'])
+                    
+                if 'transaction_hash' in kwargs:
+                    update_fields.append('transaction_hash = ?')
+                    values.append(kwargs['transaction_hash'])
+                    
+                if 'expired_time' in kwargs:
+                    update_fields.append('expired_time = ?')
+                    values.append(kwargs['expired_time'])
+                    
+                if 'wallet_address' in kwargs:
+                    update_fields.append('wallet_address = ?')
+                    values.append(kwargs['wallet_address'])
+                    
+                if 'paid' in kwargs and kwargs['paid']:
+                    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    update_fields.extend([
+                        'last_paid_date = ?',
+                        'total_paid_budget = total_paid_budget + 1'
+                    ])
+                    values.append(current_time)
+                
+                if not update_fields:
+                    return False
+                    
+                query = f'''
                     UPDATE user_data 
-                    SET paid = ?, 
-                        transaction_hash = ?, 
-                        expired_time = ?,
-                        last_paid_date = ?,
-                        total_paid_budget = total_paid_budget + 1
+                    SET {', '.join(update_fields)}
                     WHERE chat_id = ?
-                ''', (paid, transaction_hash, expired_time, current_time, chat_id))
+                '''
+                values.append(chat_id)
+                
+                cursor.execute(query, tuple(values))
                 conn.commit()
                 return True
+                
         except Exception as e:
-            print(f"Error updating payment: {e}")
+            print(f"Error updating user data: {e}")
             return False
 
     def delete_user(self, chat_id: int) -> bool:

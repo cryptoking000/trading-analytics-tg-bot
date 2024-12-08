@@ -1,346 +1,358 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import CallbackContext
+from telegram.ext import (
+    CallbackContext,
+    MessageHandler,
+    filters
+)
 from math_function import convert_usd_to_crypto
 import aiohttp
 import logging
-from database_function import UserDatabaseManager
+from database_function import UserDatabaseManager, db
 from datetime import datetime, timedelta
-from database_function import db
-# Setup logging
-logging.basicConfig(level=logging.INFO)
+from typing import Dict, List, Optional, Union
+from decimal import Decimal
+import asyncio
+from functools import wraps
+
+# Setup logging with file only
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('subscription.log')
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Initialize database manager
 db_manager = UserDatabaseManager()
 
-# Constants
-WALLET_ADDRESSES = {
+# Enhanced Constants with more options
+WALLET_ADDRESSES: Dict[str, str] = {
     "BSC": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-    "ETH": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", 
-    "SOL": "8njqnN9ZRQkvUFPNzjEU1mXMfPrC54zugmUeZoAYR659"
+    "ETH": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+    "SOL": "8njqnN9ZRQkvUFPNzjEU1mXMfPrC54zugmUeZoAYR659",
+    "MATIC": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
 }
 
-# Define keyboards
-def get_duration_keyboard():
-    print("Getting duration keyboard")
-    return [
-        [
-            InlineKeyboardButton("1 Month ($50)", callback_data="duration:1:50"),
-            InlineKeyboardButton("3 Months ($120)", callback_data="duration:3:120")
-        ],
-        [InlineKeyboardButton("1 Year ($500)", callback_data="duration:12:500")]
-    ]
+SUBSCRIPTION_PLANS = [
+    {"duration": 1, "price": 50, "label": "1 Month", "discount": 0},
+    {"duration": 3, "price": 120, "label": "3 Months", "discount": 20},
+    {"duration": 12, "price": 500, "label": "1 Year", "discount": 30}
+]
 
-def get_payment_keyboard():
-    print("Getting payment keyboard")
-    return [
-        [
-            InlineKeyboardButton("BSC", callback_data="pay:BSC"),
-            InlineKeyboardButton("ETH", callback_data="pay:ETH"),
-            InlineKeyboardButton("SOL", callback_data="pay:SOL")
-        ],
-        [InlineKeyboardButton("Back", callback_data="back")]
-    ]
+SUPPORTED_CHAINS = list(WALLET_ADDRESSES.keys())
+MIN_WALLET_LENGTH = 10
+MIN_TX_HASH_LENGTH = 10
+MAX_RETRIES = 3
+RETRY_DELAY = 2
 
-async def payment_start(update: Update, context: CallbackContext):
-    """Initialize the subscription process."""
-    print(f"Starting payment process for chat_id: {update.effective_chat.id}")
+def retry_on_failure(max_retries: int = MAX_RETRIES, delay: int = RETRY_DELAY):
+    """Decorator to retry functions on failure"""
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            for i in range(max_retries):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as e:
+                    logger.error(f"Attempt {i+1} failed: {str(e)}")
+                    if i < max_retries - 1:
+                        await asyncio.sleep(delay)
+            return False
+        return wrapper
+    return decorator
+
+def get_duration_keyboard() -> List[List[InlineKeyboardButton]]:
+    """Generate enhanced keyboard for subscription duration selection with discounts."""
+    keyboard = []
+    row = []
+    for i, plan in enumerate(SUBSCRIPTION_PLANS):
+        display_text = f"{plan['label']} (${plan['price']}"
+        if plan['discount'] > 0:
+            display_text += f" - {plan['discount']}% OFF)"
+        else:
+            display_text += ")"
+            
+        button = InlineKeyboardButton(
+            display_text,
+            callback_data=f"duration:{plan['duration']}:{plan['price']}"
+        )
+        row.append(button)
+        if len(row) == 2 or i == len(SUBSCRIPTION_PLANS) - 1:
+            keyboard.append(row)
+            row = []
+    return keyboard
+
+def get_payment_keyboard() -> List[List[InlineKeyboardButton]]:
+    """Generate enhanced keyboard for payment chain selection."""
+    keyboard = []
+    row = []
+    for i, chain in enumerate(SUPPORTED_CHAINS):
+        row.append(InlineKeyboardButton(chain, callback_data=f"pay:{chain}"))
+        if len(row) == 3 or i == len(SUPPORTED_CHAINS) - 1:
+            keyboard.append(row)
+            row = []
+    keyboard.append([InlineKeyboardButton("Back", callback_data="back")])
+    return keyboard
+
+async def payment_start(update: Update, context: CallbackContext) -> None:
+    """Initialize the enhanced subscription process."""
+    chat_id = update.effective_chat.id
+    logger.info(f"Starting payment process for chat_id: {chat_id}")
+
     keyboard = get_duration_keyboard()
     message = (
         "🔥 *Premium Subscription Plans*\n\n"
-        "Choose your subscription duration:\n"
-        "• Access to real-time market analysis\n"
-        "• AI-powered price predictions\n" 
-        "• Priority support\n"
-        "• Exclusive trading signals"
+        "Choose your subscription duration:\n\n"
+        "✨ *Benefits Include:*\n"
+        "• Real-time market analysis and alerts\n"
+        "• Advanced AI-powered price predictions\n"
+        "• Priority 24/7 support\n"
+        "• Exclusive trading signals\n"
+        "• Custom portfolio tracking\n"
+        "• Risk management tools\n\n"
+        "🎉 *Special Offer:*\n"
+        "• Save up to 30% on longer subscriptions!"
     )
-    reply_markup = InlineKeyboardMarkup(keyboard)
 
     await context.bot.send_message(
-        chat_id=update.effective_chat.id,
+        chat_id=chat_id,
         text=message,
         parse_mode='Markdown',
-        reply_markup=reply_markup
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
     context.user_data["current_state"] = "duration_selection"
-    print(f"Set state to duration_selection for chat_id: {update.effective_chat.id}")
 
-async def button_handler(update: Update, context: CallbackContext):
+async def handle_duration_selection(update: Update, context: CallbackContext, duration: int, price: float) -> None:
+    """Handle enhanced duration selection callback."""
+    chat_id = update.effective_chat.id
+    
+    selected_plan = next((plan for plan in SUBSCRIPTION_PLANS if plan['duration'] == duration), None)
+    if selected_plan and selected_plan['discount'] > 0:
+        original_price = price
+        price = price * (100 - selected_plan['discount']) / 100
+        context.user_data['discount_applied'] = selected_plan['discount']
+        context.user_data['original_price'] = original_price
+
+    context.user_data.update({
+        "duration": duration,
+        "price": Decimal(str(price)),
+        "current_state": "payment_selection",
+        "selection_timestamp": datetime.now().isoformat()
+    })
+
+    keyboard = get_payment_keyboard()
+    message = "Select your preferred payment chain:"
+    await context.bot.send_message(
+        chat_id=chat_id, 
+        text=message,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def handle_payment_chain_selection(update: Update, context: CallbackContext, chain: str) -> None:
+    """Handle payment chain selection callback."""
+    chat_id = update.effective_chat.id
+    
+    context.user_data.update({
+        "payment_chain": chain,
+        "current_state": "wallet_input"
+    })
+
+    message = (
+        "Please enter your wallet address for receiving rewards.\n\n"
+        "This wallet will be used for future reward distributions and premium features."
+    )
+    await context.bot.send_message(chat_id=chat_id, text=message)
+
+async def handle_wallet_input(update: Update, context: CallbackContext, wallet_address: str) -> None:
+    """Handle wallet address input."""
+    chat_id = update.effective_chat.id
+    
+    if len(wallet_address) < MIN_WALLET_LENGTH:
+        await update.message.reply_text("❌ Invalid wallet address. Please try again.")
+        return
+    
+    try:
+        price_usd = context.user_data.get("price", 0)
+        duration = context.user_data.get("duration", 1)
+        chain = context.user_data.get("payment_chain")
+        
+        crypto_amounts = convert_usd_to_crypto(float(price_usd))
+        expected_amount = crypto_amounts.get(chain)
+        expiry_date = datetime.now() + timedelta(days=duration * 30)
+
+        context.user_data.update({
+            "wallet_address": wallet_address,
+            "expected_amount": expected_amount,
+            "current_state": "awaiting_payment",
+            "expiry_date": expiry_date
+        })
+
+        db.update_user_payment(chat_id=chat_id, wallet_address=wallet_address, payment_method=chain)
+
+        keyboard = [
+            [InlineKeyboardButton("I've Sent Payment", callback_data="payment_sent")],
+            [InlineKeyboardButton("Cancel", callback_data="back")]
+        ]
+
+        message = (
+            f"💳 *Payment Details*\n\n"
+            f"Amount: {expected_amount} {chain} (${price_usd})\n"
+            f"Send to address:\n`{WALLET_ADDRESSES[chain]}`\n\n"
+            f"Your reward wallet:\n`{wallet_address}`\n\n"
+            f"Duration: {duration} {'month' if duration == 1 else 'months'}\n"
+            f"Expires: {expiry_date.strftime('%Y-%m-%d')}\n\n"
+            "After sending payment, click 'I've Sent Payment' and provide the transaction hash."
+        )
+
+        await update.message.reply_text(
+            text=message,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+
+    except Exception as e:
+        logger.error(f"Error processing wallet for chat_id {chat_id}: {str(e)}")
+        await update.message.reply_text("❌ Error processing wallet. Please try again.")
+
+async def button_handler(update: Update, context: CallbackContext) -> None:
     """Handle button clicks."""
     query = update.callback_query
     await query.answer()
 
-    current_state = context.user_data.get("current_state", "")
     chat_id = update.effective_chat.id
-    print(f"Button handler called - State: {current_state}, Chat ID: {chat_id}")
+    current_state = context.user_data.get("current_state", "")
 
     if current_state == "duration_selection" and query.data.startswith("duration:"):
         _, duration, price = query.data.split(":")
-        print(f"Duration selected: {duration} months, Price: ${price}")
-        context.user_data.update({
-            "duration": int(duration),
-            "price": float(price),
-            "current_state": "wallet_input"
-        })
-
-        message = (
-            "Please enter your wallet address for receiving rewards.\n\n"
-            "This wallet will be used for future reward distributions and premium features."
-        )
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text=message
-        )
+        await handle_duration_selection(update, context, int(duration), float(price))
+    
     elif current_state == "payment_selection" and query.data.startswith("pay:"):
         chain = query.data.split(":")[1]
-        price_usd = context.user_data.get("price", 0)
-        duration = context.user_data.get("duration", 1)
-        wallet_address = context.user_data.get("wallet_address")
-        print(f"Payment chain selected: {chain}, Amount: ${price_usd}")
-        
-        try:
-            crypto_amounts = convert_usd_to_crypto(price_usd)
-            expected_amount = crypto_amounts.get(chain)
-            expiry_date = datetime.now() + timedelta(days=duration * 30)
-            print(f"Crypto amount: {expected_amount} {chain}, Expiry: {expiry_date}")
-
-            keyboard = [
-                [InlineKeyboardButton("I've Sent Payment", callback_data="payment_sent")],
-                [InlineKeyboardButton("Cancel", callback_data="back")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-
-            message = (
-                f"💳 *Payment Details*\n\n"
-                f"Amount: {expected_amount} {chain} (${price_usd})\n"
-                f"Send to address:\n`{WALLET_ADDRESSES[chain]}`\n\n"
-                f"Your reward wallet:\n`{wallet_address}`\n\n"
-                f"Duration: {duration} {'month' if duration == 1 else 'months'}\n"
-                f"Expires: {expiry_date.strftime('%Y-%m-%d')}\n\n"
-                "After sending payment, click 'I've Sent Payment' and provide the transaction hash."
-            )
-            
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text=message,
-                parse_mode="Markdown",
-                reply_markup=reply_markup
-            )
-            
-            context.user_data.update({
-                "expected_amount": expected_amount,
-                "payment_chain": chain,
-                "current_state": "awaiting_payment",
-                "expiry_date": expiry_date
-            })
-            print("Payment details sent and state updated to awaiting_payment")
-            
-        except Exception as e:
-            logging.error(f"Payment setup error: {e}")
-            print(f"Error in payment setup: {e}")
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text="Error setting up payment. Please try again or contact support."
-            )
-
-    elif current_state == "wallet_input":
-        wallet_address = update.message.text.strip()
-        print(f"Processing wallet address: {wallet_address}")
-        if len(wallet_address) < 10:  # Basic validation for wallet address length
-            await update.message.reply_text("❌ Invalid wallet address. Please try again.")
-            print("Invalid wallet address detected")
-            return
-
-        context.user_data["wallet_address"] = wallet_address
-        print(f"Wallet address saved: {wallet_address}")
-        # Save wallet address to the database
-        db.add_user(chat_id=chat_id, wallet_address=wallet_address)
-        print("Wallet address saved to database")
-        
-        context.user_data["current_state"] = "payment_selection"
-
-        # Provide the next step (payment chain selection)
-        keyboard = get_payment_keyboard()
-        await update.message.reply_text(
-            "✅ Wallet address saved! Now select your preferred payment chain:",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-
+        await handle_payment_chain_selection(update, context, chain)
+    
     elif query.data == "back":
-        print("User clicked back button")
         keyboard = get_duration_keyboard()
-        message = "Select your subscription duration:"
-        reply_markup = InlineKeyboardMarkup(keyboard)
         await context.bot.send_message(
             chat_id=chat_id,
-            text=message,
-            reply_markup=reply_markup
+            text="Select your subscription duration:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
         context.user_data["current_state"] = "duration_selection"
-        print("State reset to duration_selection")
-
+    
     else:
-        print(f"Invalid action detected: {query.data}")
         await context.bot.send_message(
             chat_id=chat_id,
             text="Invalid action. Please try again."
         )
 
-async def message_handler(update: Update, context: CallbackContext):
-    """Handle text replies from the user."""
-    current_state = context.user_data.get("current_state", "")
+async def handle_payment_verification(update: Update, context: CallbackContext, tx_hash: str) -> None:
+    """Handle payment verification."""
     chat_id = update.effective_chat.id
-    print(f"Message handler called - State: {current_state}, Chat ID: {chat_id}")
+    
+    if len(tx_hash) < MIN_TX_HASH_LENGTH:
+        await update.message.reply_text("❌ Invalid transaction hash. Please try again.")
+        return
 
-    if current_state == "wallet_input":
-        wallet_address = update.message.text
-        print(f"Processing wallet address input: {wallet_address}")
-        context.user_data["wallet_address"] = wallet_address
-        
-        # Save wallet address to database
-        db.add_user(chat_id=chat_id, wallet_address=wallet_address)
-        print("Wallet address saved to database")
-        
-        price_usd = context.user_data.get("price", 0)
-        duration = context.user_data.get("duration", 1)
-        chain = "BSC"  # Default chain
-        print(f"Setting up payment details - Price: ${price_usd}, Duration: {duration} months")
-        
+    chain = context.user_data.get("payment_chain", "")
+    expected_amount = context.user_data.get("expected_amount", 0)
+    payment_address = WALLET_ADDRESSES.get(chain)
+
+    await update.message.reply_text("🔍 Verifying your transaction, please wait...")
+
+    is_valid = await verify_transaction(chain, tx_hash, expected_amount, payment_address)
+    
+    if is_valid:
         try:
-            crypto_amounts = convert_usd_to_crypto(price_usd)
-            expected_amount = crypto_amounts.get(chain)
-            expiry_date = datetime.now() + timedelta(days=duration * 30)
-            print(f"Calculated amount: {expected_amount} {chain}, Expiry: {expiry_date}")
-
-            keyboard = [
-                [InlineKeyboardButton("I've Sent Payment", callback_data="payment_sent")],
-                [InlineKeyboardButton("Cancel", callback_data="back")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-
-            message = (
-                f"💳 *Payment Details*\n\n"
-                f"Amount: {expected_amount} {chain} (${price_usd})\n"
-                f"Send to address:\n`{WALLET_ADDRESSES[chain]}`\n\n"
-                f"Your reward wallet:\n`{wallet_address}`\n\n"
-                f"Duration: {duration} {'month' if duration == 1 else 'months'}\n"
-                f"Expires: {expiry_date.strftime('%Y-%m-%d')}\n\n"
-                "After sending payment, click 'I've Sent Payment' and provide the transaction hash."
-            )
-            
-            await context.bot.send_message(
+            expiry_date = context.user_data.get("expiry_date")
+            db_manager.update_user_payment(
                 chat_id=chat_id,
-                text=message,
-                parse_mode="Markdown",
-                reply_markup=reply_markup
+                paid=True,
+                transaction_hash=tx_hash,
+                expired_time=expiry_date.strftime('%Y-%m-%d %H:%M:%S')
             )
             
-            context.user_data.update({
-                "expected_amount": expected_amount,
-                "payment_chain": chain,
-                "current_state": "awaiting_payment",
-                "expiry_date": expiry_date
-            })
-            print("Payment details sent and state updated to awaiting_payment")
+            await update.message.reply_text(
+                "✅ Payment verified successfully!\n\n"
+                "Your premium subscription is now active. Enjoy your enhanced features!\n"
+                f"Subscription expires: {expiry_date.strftime('%Y-%m-%d')}"
+            )
+            context.user_data.clear()
             
         except Exception as e:
-            logging.error(f"Payment setup error: {e}")
-            print(f"Error in payment setup: {e}")
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text="Error setting up payment. Please try again or contact support."
-            )
+            logger.error(f"Database error for chat_id {chat_id}: {str(e)}")
+            await update.message.reply_text("❌ Error updating subscription. Please contact support.")
+    else:
+        await update.message.reply_text(
+            "❌ Transaction verification failed.\n"
+            "Please ensure you've sent the correct amount and provided the correct transaction hash."
+        )
 
+async def message_handler(update: Update, context: CallbackContext) -> None:
+    """Handle text replies from the user."""
+    chat_id = update.effective_chat.id
+    current_state = context.user_data.get("current_state", "")
+
+    if current_state == "wallet_input":
+        await handle_wallet_input(update, context, update.message.text.strip())
     elif current_state == "awaiting_payment":
-        tx_hash = update.message.text.strip()
-        print(f"Processing transaction hash: {tx_hash}")
-        if len(tx_hash) < 10:  # Basic validation for hash length
-            print("Invalid transaction hash detected")
-            await update.message.reply_text("❌ Invalid transaction hash. Please try again.")
-            return
+        await handle_payment_verification(update, context, update.message.text.strip())
 
-        chain = context.user_data.get("payment_chain", "")
-        expected_amount = context.user_data.get("expected_amount", 0)
-        payment_address = WALLET_ADDRESSES.get(chain)
-        print(f"Verifying transaction - Chain: {chain}, Expected amount: {expected_amount}")
-
-        await update.message.reply_text("🔍 Verifying your transaction, please wait...")
-
-        is_valid = await verify_transaction(chain, tx_hash, expected_amount, payment_address)
-        print(f"Transaction verification result: {is_valid}")
-
-        if is_valid:
-            try:
-                expiry_date = context.user_data.get("expiry_date")
-                db_manager.update_user_payment(
-                    chat_id=chat_id,
-                    paid=True,
-                    transaction_hash=tx_hash,
-                    expired_time=expiry_date.strftime('%Y-%m-%d %H:%M:%S')
-                )
-                print(f"Payment verified and database updated for chat_id: {chat_id}")
-                await update.message.reply_text(
-                    "✅ Payment verified successfully!\n\n"
-                    "Your premium subscription is now active. Enjoy your enhanced features!\n"
-                    f"Subscription expires: {expiry_date.strftime('%Y-%m-%d')}"
-                )
-                context.user_data.clear()  # Clear user data
-                print("User data cleared")
-            except Exception as e:
-                logging.error(f"Database error: {e}")
-                print(f"Database error: {e}")
-                await update.message.reply_text("❌ Error updating subscription. Please contact support.")
-        else:
-            print("Transaction verification failed")
-            await update.message.reply_text(
-                "❌ Transaction verification failed.\n"
-                "Please ensure you've sent the correct amount and provided the correct transaction hash."
-            )
-
+@retry_on_failure()
 async def verify_transaction(chain: str, tx_hash: str, expected_amount: float, expected_address: str) -> bool:
     """Verify the transaction based on the chain."""
-    print(f"Starting transaction verification - Chain: {chain}, Hash: {tx_hash}")
     try:
         async with aiohttp.ClientSession() as session:
             if chain == "SOL":
-                print("Verifying Solana transaction")
-                url = "https://api.mainnet-beta.solana.com"
-                payload = {
-                    "jsonrpc": "2.0",
-                    "id": 1,
-                    "method": "getTransaction",
-                    "params": [tx_hash, {"encoding": "json", "commitment": "confirmed"}]
-                }
-                async with session.post(url, json=payload) as response:
-                    data = await response.json()
-                    if data.get("result"):
-                        tx_details = data["result"]
-                        tx_amount = (tx_details["meta"]["postBalances"][1] - tx_details["meta"]["preBalances"][1]) / 1e9
-                        tx_to = tx_details["transaction"]["message"]["accountKeys"][1]
-                        print(f"SOL transaction details - Amount: {tx_amount}, To: {tx_to}")
-                        return abs(tx_amount - expected_amount) < 0.01 and tx_to == expected_address
-
-            elif chain in ("BSC", "ETH"):
-                print(f"Verifying {chain} transaction")
-                api_key = "YOUR_API_KEY"  # Replace with actual API key
-                api_url = f"https://api.{chain.lower()}scan.com/api"
-                params = {
-                    "module": "proxy",
-                    "action": "eth_getTransactionByHash",
-                    "txhash": tx_hash,
-                    "apikey": api_key
-                }
-                async with session.get(api_url, params=params) as response:
-                    data = await response.json()
-                    if data.get("result"):
-                        tx_details = data["result"]
-                        tx_amount = int(tx_details["value"], 16) / 1e18
-                        tx_to = tx_details["to"]
-                        print(f"{chain} transaction details - Amount: {tx_amount}, To: {tx_to}")
-                        return abs(tx_amount - expected_amount) < 0.0001 and tx_to.lower() == expected_address.lower()
+                return await verify_solana_transaction(session, tx_hash, expected_amount, expected_address)
+            elif chain in ("BSC", "ETH", "MATIC"):
+                return await verify_evm_transaction(session, chain, tx_hash, expected_amount, expected_address)
     except Exception as e:
-        logging.error(f"Error verifying transaction: {e}")
-        print(f"Transaction verification error: {e}")
+        logger.error(f"Error verifying {chain} transaction: {str(e)}")
         return False
-    print("Transaction verification failed or unsupported chain")
+    return False
+
+@retry_on_failure()
+async def verify_solana_transaction(session: aiohttp.ClientSession, tx_hash: str, 
+                                  expected_amount: float, expected_address: str) -> bool:
+    """Verify Solana transaction."""
+    url = "https://api.mainnet-beta.solana.com"
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "getTransaction",
+        "params": [tx_hash, {"encoding": "json", "commitment": "confirmed"}]
+    }
+    
+    async with session.post(url, json=payload) as response:
+        data = await response.json()
+        if data.get("result"):
+            tx_details = data["result"]
+            tx_amount = (tx_details["meta"]["postBalances"][1] - tx_details["meta"]["preBalances"][1]) / 1e9
+            tx_to = tx_details["transaction"]["message"]["accountKeys"][1]
+            return abs(tx_amount - expected_amount) < 0.01 and tx_to == expected_address
+    return False
+
+@retry_on_failure()
+async def verify_evm_transaction(session: aiohttp.ClientSession, chain: str, tx_hash: str,
+                               expected_amount: float, expected_address: str) -> bool:
+    """Verify EVM-based transaction (ETH/BSC/MATIC)."""
+    api_key = "YOUR_API_KEY"  # Replace with actual API key
+    api_url = f"https://api.{chain.lower()}scan.com/api"
+    params = {
+        "module": "proxy",
+        "action": "eth_getTransactionByHash",
+        "txhash": tx_hash,
+        "apikey": api_key
+    }
+    
+    async with session.get(api_url, params=params) as response:
+        data = await response.json()
+        if data.get("result"):
+            tx_details = data["result"]
+            tx_amount = int(tx_details["value"], 16) / 1e18
+            tx_to = tx_details["to"]
+            return abs(tx_amount - expected_amount) < 0.0001 and tx_to.lower() == expected_address.lower()
     return False

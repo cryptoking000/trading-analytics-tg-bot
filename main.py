@@ -114,7 +114,7 @@ def main():
     application.add_handler(CommandHandler("stop_sendDm", stop_sendDm))
     
     application.add_handler(CallbackQueryHandler(button_handler))
-    application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'\A[0-9A-Fa-fx]+\Z'), reply))
+    # application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'\A[0-9A-Fa-fx]+\Z'), reply))
     
     # Start the Bot
     print("👟👟Bot is running...")

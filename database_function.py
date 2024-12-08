@@ -1,7 +1,7 @@
 import sqlitecloud
 from typing import Optional, Dict, Any
 from datetime import datetime
-connection_string = 'sqlitecloud://cqxv3cfvhz.sqlite.cloud:8860/Telegram bot-database?apikey=LatG9mr0j4cxwXHUjj9713u08qd5NmKtXfynbbabZP0'
+connection_string = 'sqlitecloud://cqxv3cfvhz.sqlite.cloud:8860/Telegram-Bot-database?apikey=9AK557xjOuWgMqol4itbtJiAEiCiR5uF9r8QI7OvvlI'
 
 class UserDatabaseManager:
     """Database manager class for SQLite Cloud operations"""
@@ -29,16 +29,14 @@ class UserDatabaseManager:
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             chat_id INTEGER UNIQUE,
                             username TEXT,
-                            expired_time TIMESTAMP,
-                            paid BOOLEAN DEFAULT FALSE,
-                            transaction_hash TEXT,
                             registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             last_active TIMESTAMP,
+                            paid BOOLEAN DEFAULT FALSE,
+                            expired_time TIMESTAMP,
                             total_paid_budget INTEGER DEFAULT 0,
                             last_paid_date TIMESTAMP,
-                            'transaction_hash': 'TEXT',
-                            'total_paid_budget': 'INTEGER DEFAULT 0',
-                            'last_paid_date': 'TIMESTAMP'
+                            transaction_hash TEXT,
+                            payment_method TEXT
                            )
                     ''')
                 else:
@@ -47,6 +45,39 @@ class UserDatabaseManager:
                 conn.commit()
         except Exception as e:
             print(f"Error creating/updating tables: {e}")
+
+    def _update_table_columns(self, cursor):
+        """Update table schema if new columns need to be added"""
+        try:
+            # Get existing columns
+            cursor.execute('PRAGMA table_info(user_data)')
+            existing_columns = {row[1] for row in cursor.fetchall()}
+
+            # Define expected columns with their types
+            expected_columns = {
+                # 'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
+                'chat_id': 'INTEGER UNIQUE',
+                'username': 'TEXT',
+                'registration_date': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+                'last_active': 'TIMESTAMP',
+                'paid': 'BOOLEAN DEFAULT FALSE',
+                'expired_time': 'TIMESTAMP',
+                'total_paid_budget': 'INTEGER DEFAULT 0',
+                'last_paid_date': 'TIMESTAMP',
+                'transaction_hash': 'TEXT',
+                'payment_method': 'TEXT',
+                'wallet_address': 'TEXT'
+            }
+
+            # Add missing columns
+            for column_name, column_type in expected_columns.items():
+                if column_name not in existing_columns:
+                    alter_query = f'ALTER TABLE user_data ADD COLUMN {column_name} {column_type}'
+                    cursor.execute(alter_query)
+                    print(f"Added new column: {column_name}")
+
+        except Exception as e:
+            print(f"Error updating table columns: {e}")
 
     def add_column(self, column_name: str, column_type: str) -> bool:
         """Add a new column to the user_data table"""
@@ -110,7 +141,9 @@ class UserDatabaseManager:
                         "registration_date": row[6],
                         "last_active": row[7],
                         "total_paid_budget": row[8],
-                        "last_paid_date": row[9]
+                        "last_paid_date": row[9],
+                        "wallet_address": row[10],
+                        "payment_method": row[11]
                     }
                     for row in results
                 ]
@@ -138,7 +171,9 @@ class UserDatabaseManager:
                         "registration_date": result[6],
                         "last_active": result[7],
                         "total_paid_budget": result[8],
-                        "last_paid_date": result[9]
+                        "last_paid_date": result[9],
+                        "wallet_address": result[10],
+                        "payment_method": result[11]
                     }
                 return None
         except Exception as e:

@@ -1,7 +1,7 @@
 import sqlitecloud
 from typing import Optional, Dict, Any
 from datetime import datetime
-connection_string = 'sqlitecloud://cqxv3cfvhz.sqlite.cloud:8860/Telegram bot-database?apikey=LatG9mr0j4cxwXHUjj9713u08qd5NmKtXfynbbabZP0'
+connection_string = 'sqlitecloud://cqxv3cfvhz.sqlite.cloud:8860/Telegram-Bot-database?apikey=9AK557xjOuWgMqol4itbtJiAEiCiR5uF9r8QI7OvvlI'
 
 class UserDatabaseManager:
     """Database manager class for SQLite Cloud operations"""
@@ -29,16 +29,14 @@ class UserDatabaseManager:
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             chat_id INTEGER UNIQUE,
                             username TEXT,
-                            expired_time TIMESTAMP,
-                            paid BOOLEAN DEFAULT FALSE,
-                            transaction_hash TEXT,
                             registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             last_active TIMESTAMP,
+                            paid BOOLEAN DEFAULT FALSE,
+                            expired_time TIMESTAMP,
                             total_paid_budget INTEGER DEFAULT 0,
                             last_paid_date TIMESTAMP,
-                            'transaction_hash': 'TEXT',
-                            'total_paid_budget': 'INTEGER DEFAULT 0',
-                            'last_paid_date': 'TIMESTAMP'
+                            transaction_hash TEXT,
+                            payment_method TEXT
                            )
                     ''')
                 else:
@@ -47,6 +45,39 @@ class UserDatabaseManager:
                 conn.commit()
         except Exception as e:
             print(f"Error creating/updating tables: {e}")
+
+    def _update_table_columns(self, cursor):
+        """Update table schema if new columns need to be added"""
+        try:
+            # Get existing columns
+            cursor.execute('PRAGMA table_info(user_data)')
+            existing_columns = {row[1] for row in cursor.fetchall()}
+
+            # Define expected columns with their types
+            expected_columns = {
+                # 'id': 'INTEGER PRIMARY KEY AUTOINCREMENT',
+                'chat_id': 'INTEGER UNIQUE',
+                'username': 'TEXT',
+                'registration_date': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+                'last_active': 'TIMESTAMP',
+                'paid': 'BOOLEAN DEFAULT FALSE',
+                'expired_time': 'TIMESTAMP',
+                'total_paid_budget': 'INTEGER DEFAULT 0',
+                'last_paid_date': 'TIMESTAMP',
+                'transaction_hash': 'TEXT',
+                'payment_method': 'TEXT',
+                'wallet_address': 'TEXT'
+            }
+
+            # Add missing columns
+            for column_name, column_type in expected_columns.items():
+                if column_name not in existing_columns:
+                    alter_query = f'ALTER TABLE user_data ADD COLUMN {column_name} {column_type}'
+                    cursor.execute(alter_query)
+                    print(f"Added new column: {column_name}")
+
+        except Exception as e:
+            print(f"Error updating table columns: {e}")
 
     def add_column(self, column_name: str, column_type: str) -> bool:
         """Add a new column to the user_data table"""
@@ -110,7 +141,9 @@ class UserDatabaseManager:
                         "registration_date": row[6],
                         "last_active": row[7],
                         "total_paid_budget": row[8],
-                        "last_paid_date": row[9]
+                        "last_paid_date": row[9],
+                        "wallet_address": row[10],
+                        "payment_method": row[11]
                     }
                     for row in results
                 ]
@@ -138,33 +171,68 @@ class UserDatabaseManager:
                         "registration_date": result[6],
                         "last_active": result[7],
                         "total_paid_budget": result[8],
-                        "last_paid_date": result[9]
+                        "last_paid_date": result[9],
+                        "wallet_address": result[10],
+                        "payment_method": result[11]
                     }
                 return None
         except Exception as e:
             print(f"Error getting user: {e}")
             return None
-
-    def update_user_payment(self, chat_id: int, paid: bool, 
-                          transaction_hash: str, expired_time: str) -> bool:
-        """Update user payment status"""
+    def update_user_payment(self, chat_id: int, **kwargs) -> bool:
+        """Update user payment status and related fields"""
         try:
             with sqlitecloud.connect(self.connection_string) as conn:
                 cursor = conn.cursor()
-                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                cursor.execute('''
+                
+                # Build dynamic update query based on provided fields
+                update_fields = []
+                values = []
+                
+                if 'paid' in kwargs:
+                    update_fields.append('paid = ?')
+                    values.append(kwargs['paid'])
+                    
+                if 'payment_method' in kwargs:
+                    update_fields.append('payment_method = ?')
+                    values.append(kwargs['payment_method'])
+                    
+                if 'transaction_hash' in kwargs:
+                    update_fields.append('transaction_hash = ?')
+                    values.append(kwargs['transaction_hash'])
+                    
+                if 'expired_time' in kwargs:
+                    update_fields.append('expired_time = ?')
+                    values.append(kwargs['expired_time'])
+                    
+                if 'wallet_address' in kwargs:
+                    update_fields.append('wallet_address = ?')
+                    values.append(kwargs['wallet_address'])
+                    
+                if 'paid' in kwargs and kwargs['paid']:
+                    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    update_fields.extend([
+                        'last_paid_date = ?',
+                        'total_paid_budget = total_paid_budget + 1'
+                    ])
+                    values.append(current_time)
+                
+                if not update_fields:
+                    return False
+                    
+                query = f'''
                     UPDATE user_data 
-                    SET paid = ?, 
-                        transaction_hash = ?, 
-                        expired_time = ?,
-                        last_paid_date = ?,
-                        total_paid_budget = total_paid_budget + 1
+                    SET {', '.join(update_fields)}
                     WHERE chat_id = ?
-                ''', (paid, transaction_hash, expired_time, current_time, chat_id))
+                '''
+                values.append(chat_id)
+                
+                cursor.execute(query, tuple(values))
                 conn.commit()
                 return True
+                
         except Exception as e:
-            print(f"Error updating payment: {e}")
+            print(f"Error updating user data: {e}")
             return False
 
     def delete_user(self, chat_id: int) -> bool:

@@ -1,11 +1,12 @@
 import sqlitecloud
 from typing import Optional, Dict, Any
 from datetime import datetime
+connection_string = 'sqlitecloud://cqxv3cfvhz.sqlite.cloud:8860/Telegram bot-database?apikey=LatG9mr0j4cxwXHUjj9713u08qd5NmKtXfynbbabZP0'
 
 class UserDatabaseManager:
     """Database manager class for SQLite Cloud operations"""
     
-    def __init__(self, connection_string: str):
+    def __init__(self):
         self.connection_string = connection_string
         self._create_tables()
     
@@ -14,25 +15,60 @@ class UserDatabaseManager:
         try:
             with sqlitecloud.connect(self.connection_string) as conn:
                 cursor = conn.cursor()
+                # First check if table exists
                 cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        chat_id INTEGER UNIQUE,
-                        username TEXT,
-                        expired_time TIMESTAMP,
-                        paid BOOLEAN DEFAULT FALSE,
-                        transaction_key TEXT,
-                        registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        last_active TIMESTAMP
-                    )
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='user_data'
                 ''')
+                table_exists = cursor.fetchone() is not None
+
+                if not table_exists:
+                    # Create table if it doesn't exist
+                    cursor.execute('''
+                        CREATE TABLE user_data (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            chat_id INTEGER UNIQUE,
+                            username TEXT,
+                            expired_time TIMESTAMP,
+                            paid BOOLEAN DEFAULT FALSE,
+                            transaction_hash TEXT,
+                            registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            last_active TIMESTAMP,
+                            total_paid_budget INTEGER DEFAULT 0,
+                            last_paid_date TIMESTAMP,
+                            'transaction_hash': 'TEXT',
+                            'total_paid_budget': 'INTEGER DEFAULT 0',
+                            'last_paid_date': 'TIMESTAMP'
+                           )
+                    ''')
+                else:
+                    self._update_table_columns(cursor)
+                
                 conn.commit()
         except Exception as e:
-            print(f"Error creating tables: {e}")
+            print(f"Error creating/updating tables: {e}")
+
+    def add_column(self, column_name: str, column_type: str) -> bool:
+        """Add a new column to the user_data table"""
+        try:
+            with sqlitecloud.connect(self.connection_string) as conn:
+                cursor = conn.cursor()
+                # Check if column exists
+                cursor.execute('PRAGMA table_info(user_data)')
+                existing_columns = {row[1] for row in cursor.fetchall()}
+                
+                if column_name not in existing_columns:
+                    cursor.execute(f'ALTER TABLE user_data ADD COLUMN {column_name} {column_type}')
+                    conn.commit()
+                    return True
+                return False
+        except Exception as e:
+            print(f"Error adding column: {e}")
+            return False
 
     def add_user(self, chat_id: int, username: str = None, 
                  expired_time: str = None, paid: bool = False,
-                 transaction_key: str = None,
+                 transaction_hash: str = None,
                  last_active: str = None,
                 ) -> bool:
         """Add or update a user in the database"""
@@ -40,27 +76,28 @@ class UserDatabaseManager:
             with sqlitecloud.connect(self.connection_string) as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    INSERT INTO users 
-                    (chat_id, username, expired_time, paid, transaction_key, last_active)
+                    INSERT INTO user_data 
+                    (chat_id, username, expired_time, paid, transaction_hash, last_active)
                     VALUES (?, ?, ?, ?, ?, ?)
                     ON CONFLICT(chat_id) DO UPDATE SET
                         username=excluded.username,
                         expired_time=excluded.expired_time,
                         paid=excluded.paid,
-                        transaction_key=excluded.transaction_key,
+                        transaction_hash=excluded.transaction_hash,
                         last_active=excluded.last_active
-                ''', (chat_id, username, expired_time, paid, transaction_key, last_active))
+                ''', (chat_id, username, expired_time, paid, transaction_hash, last_active))
                 conn.commit()
                 return True
         except Exception as e:
             print(f"Error adding/updating user: {e}")
             return False
+
     def get_all_users(self) -> list:
         """Get all users from database"""
         try:
             with sqlitecloud.connect(self.connection_string) as conn:
                 cursor = conn.cursor()
-                cursor.execute('SELECT * FROM users')
+                cursor.execute('SELECT * FROM user_data')
                 results = cursor.fetchall()
                 return [
                     {
@@ -69,9 +106,11 @@ class UserDatabaseManager:
                         "username": row[2],
                         "expired_time": row[3],
                         "paid": row[4],
-                        "transaction_key": row[5],
+                        "transaction_hash": row[5],
                         "registration_date": row[6],
-                        "last_active": row[7]
+                        "last_active": row[7],
+                        "total_paid_budget": row[8],
+                        "last_paid_date": row[9]
                     }
                     for row in results
                 ]
@@ -85,7 +124,7 @@ class UserDatabaseManager:
             with sqlitecloud.connect(self.connection_string) as conn:
                 cursor = conn.cursor()
                 cursor.execute('''
-                    SELECT * FROM users WHERE chat_id = ?
+                    SELECT * FROM user_data WHERE chat_id = ?
                 ''', (chat_id,))
                 result = cursor.fetchone()
                 if result:
@@ -95,9 +134,11 @@ class UserDatabaseManager:
                         "username": result[2],
                         "expired_time": result[3],
                         "paid": result[4],
-                        "transaction_key": result[5],
+                        "transaction_hash": result[5],
                         "registration_date": result[6],
-                        "last_active": result[7]
+                        "last_active": result[7],
+                        "total_paid_budget": result[8],
+                        "last_paid_date": result[9]
                     }
                 return None
         except Exception as e:
@@ -105,16 +146,21 @@ class UserDatabaseManager:
             return None
 
     def update_user_payment(self, chat_id: int, paid: bool, 
-                          transaction_key: str, expired_time: str) -> bool:
+                          transaction_hash: str, expired_time: str) -> bool:
         """Update user payment status"""
         try:
             with sqlitecloud.connect(self.connection_string) as conn:
                 cursor = conn.cursor()
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 cursor.execute('''
-                    UPDATE users 
-                    SET paid = ?, transaction_key = ?, expired_time = ?
+                    UPDATE user_data 
+                    SET paid = ?, 
+                        transaction_hash = ?, 
+                        expired_time = ?,
+                        last_paid_date = ?,
+                        total_paid_budget = total_paid_budget + 1
                     WHERE chat_id = ?
-                ''', (paid, transaction_key, expired_time, chat_id))
+                ''', (paid, transaction_hash, expired_time, current_time, chat_id))
                 conn.commit()
                 return True
         except Exception as e:
@@ -126,12 +172,11 @@ class UserDatabaseManager:
         try:
             with sqlitecloud.connect(self.connection_string) as conn:
                 cursor = conn.cursor()
-                cursor.execute('DELETE FROM users WHERE chat_id = ?', (chat_id,))
+                cursor.execute('DELETE FROM user_data WHERE chat_id = ?', (chat_id,))
                 conn.commit()
                 return True
         except Exception as e:
             print(f"Error deleting user: {e}")
             return False
-
-# Create a singleton instance
-db = UserDatabaseManager('sqlitecloud://cqxv3cfvhz.sqlite.cloud:8860/users-database?apikey=LatG9mr0j4cxwXHUjj9713u08qd5NmKtXfynbbabZP0')
+# Create database instance
+db = UserDatabaseManager()   

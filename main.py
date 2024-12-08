@@ -8,7 +8,7 @@ from telegram.ext import (
     filters,
 )
 from telegram.constants import ParseMode
-from database_managment import Add_User_Start
+from database_management import add_user_start
 from apidata import fetch_trading_pair_data
 from sendDM import start_dm_service, stop_dm_service
 from subscribe import payment_start, button_handler
@@ -62,7 +62,7 @@ def get_token_keyboard(chain_id, token_address):
     return InlineKeyboardMarkup(keyboard)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await Add_User_Start(update=update, context=context)
+    await add_user_start(update=update, context=context)
     message = (
         "🎉 *Welcome to CryptoAdvisor Bot!*\n\n"
         "I'm here to help you track and analyze cryptocurrencies.\n"

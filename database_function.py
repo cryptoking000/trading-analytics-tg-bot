@@ -66,7 +66,10 @@ class UserDatabaseManager:
                 'last_paid_date': 'TIMESTAMP',
                 'transaction_hash': 'TEXT',
                 'payment_method': 'TEXT',
-                'wallet_address': 'TEXT'
+                'ETH_wallet_address': 'TEXT',
+                'BTC_wallet_address': 'TEXT',
+                'USDT_wallet_address': 'TEXT',
+                'total_amount': 'INTEGER'
             }
 
             # Add missing columns
@@ -78,7 +81,6 @@ class UserDatabaseManager:
 
         except Exception as e:
             print(f"Error updating table columns: {e}")
-
     def add_column(self, column_name: str, column_type: str) -> bool:
         """Add a new column to the user_data table"""
         try:
@@ -142,8 +144,11 @@ class UserDatabaseManager:
                         "last_active": row[7],
                         "total_paid_budget": row[8],
                         "last_paid_date": row[9],
-                        "wallet_address": row[10],
-                        "payment_method": row[11]
+                        "ETH_wallet_address": row[10],
+                        "BTC_wallet_address": row[11],
+                        "USDT_wallet_address": row[12],
+                        "payment_method": row[13],
+                        "total_amount": row[14]
                     }
                     for row in results
                 ]
@@ -172,15 +177,46 @@ class UserDatabaseManager:
                         "last_active": result[7],
                         "total_paid_budget": result[8],
                         "last_paid_date": result[9],
-                        "wallet_address": result[10],
-                        "payment_method": result[11]
+                        "ETH_wallet_address": result[10],
+                        "BTC_wallet_address": result[11],
+                        "USDT_wallet_address": result[12],
+                        "payment_method": result[13],
+                        "total_amount": result[14]
                     }
                 return None
         except Exception as e:
             print(f"Error getting user: {e}")
             return None
+
     def update_user_payment(self, chat_id: int, **kwargs) -> bool:
-        """Update user payment status and related fields"""
+        """Update user payment status and related fields
+        
+        Args:
+            chat_id (int): The chat ID of the user to update
+            **kwargs: Fields to update, which can include:
+                - paid (bool): Payment status
+                - payment_method (str): Method of payment
+                - transaction_hash (str): Transaction hash
+                - expired_time (str): Expiration timestamp
+                - ETH_wallet_address (str): ETH wallet address
+                - BTC_wallet_address (str): BTC wallet address
+                - USDT_wallet_address (str): USDT wallet address
+                - total_amount (float): Total amount paid
+                
+        Returns:
+            bool: True if update successful, False otherwise
+        """
+        VALID_FIELDS = {
+            'paid': 'paid = ?',
+            'payment_method': 'payment_method = ?',
+            'transaction_hash': 'transaction_hash = ?', 
+            'expired_time': 'expired_time = ?',
+            'ETH_wallet_address': 'ETH_wallet_address = ?',
+            'BTC_wallet_address': 'BTC_wallet_address = ?',
+            'USDT_wallet_address': 'USDT_wallet_address = ?',
+            'total_amount': 'total_amount = ?'
+        }
+
         try:
             with sqlitecloud.connect(self.connection_string) as conn:
                 cursor = conn.cursor()
@@ -189,34 +225,23 @@ class UserDatabaseManager:
                 update_fields = []
                 values = []
                 
-                if 'paid' in kwargs:
-                    update_fields.append('paid = ?')
-                    values.append(kwargs['paid'])
-                    
-                if 'payment_method' in kwargs:
-                    update_fields.append('payment_method = ?')
-                    values.append(kwargs['payment_method'])
-                    
-                if 'transaction_hash' in kwargs:
-                    update_fields.append('transaction_hash = ?')
-                    values.append(kwargs['transaction_hash'])
-                    
-                if 'expired_time' in kwargs:
-                    update_fields.append('expired_time = ?')
-                    values.append(kwargs['expired_time'])
-                    
-                if 'wallet_address' in kwargs:
-                    update_fields.append('wallet_address = ?')
-                    values.append(kwargs['wallet_address'])
-                    
-                if 'paid' in kwargs and kwargs['paid']:
+                # Process only valid fields
+                for field, sql in VALID_FIELDS.items():
+                    if field in kwargs:
+                        update_fields.append(sql)
+                        values.append(kwargs[field])
+
+                # Handle paid status update specially
+                if kwargs.get('paid'):
                     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     update_fields.extend([
                         'last_paid_date = ?',
                         'total_paid_budget = total_paid_budget + 1'
                     ])
                     values.append(current_time)
-                
+                if 'total_amount' in kwargs:
+                    update_fields.append('total_amount = total_amount + ?')
+                    values.append(kwargs['total_amount'])
                 if not update_fields:
                     return False
                     
@@ -229,12 +254,13 @@ class UserDatabaseManager:
                 
                 cursor.execute(query, tuple(values))
                 conn.commit()
+                print(f"User payment data updated for chat_id: {chat_id}")
                 return True
                 
         except Exception as e:
-            print(f"Error updating user data: {e}")
+            print(f"Error updating user payment data: {e}")
             return False
-
+    
     def delete_user(self, chat_id: int) -> bool:
         """Delete a user from database"""
         try:
@@ -246,5 +272,32 @@ class UserDatabaseManager:
         except Exception as e:
             print(f"Error deleting user: {e}")
             return False
+
+    def get_expiry_date(self, chat_id: int) -> Optional[datetime]:
+        """Get the expiry date for a user's subscription
+        
+        Args:
+            chat_id (int): The chat ID of the user
+            
+        Returns:
+            Optional[datetime]: The expiry date if found, None otherwise
+        """
+        try:
+            with sqlitecloud.connect(self.connection_string) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT expired_time 
+                    FROM user_data 
+                    WHERE chat_id = ?
+                ''', (chat_id,))
+                
+                result = cursor.fetchone()
+                if result and result[0]:
+                    return datetime.strptime(result[0], '%Y-%m-%d %H:%M:%S')
+                return None
+                
+        except Exception as e:
+            print(f"Error getting expiry date: {e}")
+            return None
 # Create database instance
 db = UserDatabaseManager()   

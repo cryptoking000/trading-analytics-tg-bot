@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Union
 from decimal import Decimal
 import asyncio
 from functools import wraps
+import json
 
 # Setup logging with file only
 logging.basicConfig(
@@ -27,7 +28,7 @@ db_manager = UserDatabaseManager()
 # Enhanced Constants with more options
 WALLET_ADDRESSES: Dict[str, str] = {
     "BSC": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-    "ETH": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", 
+    "ETH": "0x310166751C19a2b1C37129a52ff8b433D8C6Df17", 
     "SOL": "8njqnN9ZRQkvUFPNzjEU1mXMfPrC54zugmUeZoAYR659",
     "TON": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
 }
@@ -44,18 +45,42 @@ MIN_TX_HASH_LENGTH = 10
 MAX_RETRIES = 3
 RETRY_DELAY = 2
 
+# Chain-specific configurations
+CHAIN_CONFIGS = {
+    "ETH": {
+        "decimals": 18,
+        "explorer_api": "https://api.etherscan.io/api"
+    },
+    "BSC": {
+        "decimals": 18,
+        "explorer_api": "https://api.bscscan.com/api"
+    },
+    "SOL": {
+        "decimals": 9,
+        "explorer_api": "https://api.solscan.io"
+    },
+    "TON": {
+        "decimals": 18,
+        "explorer_api": "https://api.tonscan.com/api"
+    }
+}
+
 def retry_on_failure(max_retries: int = MAX_RETRIES, delay: int = RETRY_DELAY):
-    """Decorator to retry functions on failure"""
+    """Decorator to retry functions on failure with exponential backoff"""
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs):
-            for i in range(max_retries):
+            for attempt in range(max_retries):
                 try:
                     return await func(*args, **kwargs)
                 except Exception as e:
-                    logger.error(f"Attempt {i+1} failed: {str(e)}")
-                    if i < max_retries - 1:
-                        await asyncio.sleep(delay)
+                    wait_time = delay * (2 ** attempt)  # Exponential backoff
+                    logger.error(f"Attempt {attempt + 1}/{max_retries} failed: {str(e)}")
+                    logger.info(f"Retrying in {wait_time} seconds...")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(wait_time)
+                    else:
+                        logger.error("Max retries reached. Giving up.")
             return False
         return wrapper
     return decorator
@@ -178,16 +203,36 @@ async def handle_wallet_input(update: Update, context: CallbackContext, wallet_a
         
         crypto_amounts = convert_usd_to_crypto(float(price_usd))
         expected_amount = crypto_amounts.get(chain)
-        expiry_date = datetime.now() + timedelta(days=duration * 30)
+        expected_amount=0.02618 
+
+        # Get current expiry date from database
+        current_expiry = db_manager.get_expiry_date(chat_id)
+        
+        # Calculate new expiry date
+        if current_expiry and current_expiry > datetime.now():
+            # If user has active subscription, add duration to current expiry
+            expiry_date = current_expiry + timedelta(days=duration * 30)
+        else:
+            # If no active subscription or expired, calculate from now
+            expiry_date = datetime.now() + timedelta(days=duration * 30)
 
         context.user_data.update({
             "wallet_address": wallet_address,
-            "expected_amount": expected_amount,
+            "expected_amount": price_usd,
             "current_state": "awaiting_payment",
             "expiry_date": expiry_date
         })
-
-        db.update_user_payment(chat_id=chat_id, wallet_address=wallet_address, payment_method=chain)
+        print(f"chat_id: {chat_id}, wallet_address: {wallet_address}, chain: {chain}")
+        # Update user's payment details in database with chain-specific wallet address
+        if chain == "ETH":
+           db_manager.update_user_payment(chat_id=chat_id, ETH_wallet_address=wallet_address, payment_method=chain)
+        elif chain == "BSC": 
+           db_manager.update_user_payment(chat_id=chat_id, BTC_wallet_address=wallet_address, payment_method=chain)
+        elif chain == "SOL":
+           db_manager.update_user_payment(chat_id=chat_id, USDT_wallet_address=wallet_address, payment_method=chain)
+        else:
+            logger.error(f"Unsupported payment chain: {chain}")
+            raise ValueError(f"Unsupported payment chain: {chain}")
 
         keyboard = [
             [InlineKeyboardButton("I've Sent Payment", callback_data="payment_sent")],
@@ -246,88 +291,173 @@ async def button_handler(update: Update, context: CallbackContext) -> None:
         )
 
 async def handle_payment_verification(update: Update, context: CallbackContext, tx_hash: str) -> None:
-    """Handle payment verification."""
-    chat_id = update.effective_chat.id
     
-    if len(tx_hash) < MIN_TX_HASH_LENGTH:
-        await update.message.reply_text("❌ Invalid transaction hash. Please try again.")
+    chat_id = update.effective_chat.id
+    print(f"🚀 Starting payment verification journey for chat_id: {chat_id}")
+    
+    if not tx_hash or len(tx_hash) < MIN_TX_HASH_LENGTH:
+        await update.message.reply_text("❌ Invalid transaction hash. Please provide a valid transaction hash.")
+        print(f"😕 Invalid transaction hash provided by chat_id {chat_id}")
         return
 
     chain = context.user_data.get("payment_chain", "")
+    if not chain or chain not in SUPPORTED_CHAINS:
+        await update.message.reply_text("❌ Invalid payment chain. Please start the payment process again.")
+        print(f"😫 Invalid payment chain {chain} for chat_id {chat_id}")
+        return
+
     expected_amount = context.user_data.get("expected_amount", 0)
     payment_address = WALLET_ADDRESSES.get(chain)
-
-    await update.message.reply_text("🔍 Verifying your transaction, please wait...")
-
-    is_valid = await verify_transaction(chain, tx_hash, expected_amount, payment_address)
+    print(f"💰 Expected payment: {expected_amount} {chain} to {payment_address}")
     
-    if is_valid:
-        try:
-            expiry_date = context.user_data.get("expiry_date")
-            db_manager.update_user_payment(
-                chat_id=chat_id,
-                paid=True,
-                transaction_hash=tx_hash,
-                expired_time=expiry_date.strftime('%Y-%m-%d %H:%M:%S')
-            )
-            
+    await update.message.reply_text("🔍 Verifying your transaction, please wait...")
+    print(f"🔎 Starting detailed transaction verification for chat_id {chat_id}, chain {chain}, tx_hash {tx_hash}")
+
+    try:
+        tx_details = await verify_transaction(chain, tx_hash, expected_amount, payment_address)
+        print(tx_details)
+        if not tx_details:
             await update.message.reply_text(
-                "✅ Payment verified successfully!\n\n"
-                "Your premium subscription is now active. Enjoy your enhanced features!\n"
-                f"Subscription expires: {expiry_date.strftime('%Y-%m-%d')}"
+                "❌ Transaction verification failed.\n"
+                "Please ensure:\n"
+                "• The transaction hash is correct\n"
+                "• You've sent the exact amount required\n"
+                "• The transaction is confirmed on the blockchain\n"
+                "• You've sent to the correct address"
             )
-            context.user_data.clear()
-            
-        except Exception as e:
-            logger.error(f"Database error for chat_id {chat_id}: {str(e)}")
-            await update.message.reply_text("❌ Error updating subscription. Please contact support.")
-    else:
+            print(f"😢 Transaction verification failed for chat_id {chat_id}, tx_hash {tx_hash}")
+            return
+
+        expiry_date = context.user_data.get("expiry_date")
+        if not expiry_date:
+            await update.message.reply_text("❌ Invalid expiry date. Please start the payment process again.")
+            logger.error(f"Missing expiry date for chat_id {chat_id}")
+            return
+        print(expiry_date)    
+        db_manager.update_user_payment(
+            chat_id=chat_id,
+            paid=True,
+            total_amount=expected_amount,
+            transaction_hash=tx_hash,
+            expired_time=expiry_date.strftime('%Y-%m-%d %H:%M:%S'),
+            payment_method=chain,
+            ETH_wallet_address=tx_details['from_address'] if chain == "ETH" else None,
+            BTC_wallet_address=tx_details['from_address'] if chain == "BTC" else None,
+            USDT_wallet_address=tx_details['from_address'] if chain == "USDT" else None
+        )
+        print(f"✅ Payment successfully recorded in database for chat_id {chat_id}")
+        
+        success_message = (
+            "✅ *Payment Verified Successfully!*\n\n"
+            "*Transaction Details:*\n"
+            f"• Amount: {tx_details['amount']} {chain}\n"
+            f"• Time: {tx_details['timestamp']}\n"
+            f"• From: `{tx_details['from_address']}`\n"
+            f"• To: `{tx_details['to_address']}`\n\n"
+            "🎉 *Your Premium Subscription is Now Active!*\n"
+            f"• Expires: {expiry_date.strftime('%Y-%m-%d')}\n\n"
+            "Enjoy your enhanced features and premium benefits!"
+        )
+        
         await update.message.reply_text(
-            "❌ Transaction verification failed.\n"
-            "Please ensure you've sent the correct amount and provided the correct transaction hash."
+            text=success_message,
+            parse_mode="Markdown"
+        )
+        print(f"🎉 Payment verification completed successfully for chat_id {chat_id}")
+        
+        # Clear user data after successful verification
+        context.user_data.clear()
+        
+    except Exception as e:
+        print(f"😱 Payment verification error for chat_id {chat_id}: {str(e)}")
+        await update.message.reply_text(
+            "❌ An error occurred during verification.\n"
+            "Please contact support if the issue persists."
         )
 
 @retry_on_failure()
-async def verify_transaction(chain: str, tx_hash: str, expected_amount: float, expected_address: str) -> bool:
-    """Verify the transaction based on the chain."""
+async def verify_transaction(chain: str, tx_hash: str, expected_amount: float, payment_address: str) -> Optional[Dict]:
+    """Enhanced transaction verification with better validation and error handling."""
     try:
+        print(f"🔄 Starting transaction verification process for chain {chain}, tx_hash {tx_hash}")
         async with aiohttp.ClientSession() as session:
             if chain == "SOL":
-                return await verify_solana_transaction(session, tx_hash, expected_amount, expected_address)
+                tx_details = await verify_solana_transaction(session, tx_hash)
             elif chain in ("BSC", "ETH", "TON"):
-                return await verify_evm_transaction(session, chain, tx_hash, expected_amount, expected_address)
+                tx_details = await verify_evm_transaction(session, chain, tx_hash)
+            else:
+                print(f"❌ Unsupported chain: {chain}")
+                return None
+
+            if not tx_details:
+                print(f"😕 No transaction details found for {chain} tx: {tx_hash}")
+                return None
+
+            # Validate transaction details
+            amount = tx_details.get("amount", 0)
+            to_address = tx_details.get("to_address", "").lower()
+            
+            expected_address = payment_address.lower()
+            print(f"🔍 Validating transaction - Amount: {amount}, Expected: {expected_amount}")
+       
+            if (abs(float(amount) - float(expected_amount)) <= 0.0001 and
+                to_address == expected_address
+                ):
+                print(f"✨ Transaction validation successful for {chain} tx: {tx_hash}")
+                return {
+                    **tx_details,
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+            
+            print(f"❌ Transaction validation failed for {chain} tx: {tx_hash}")
+            return None
+
     except Exception as e:
-        logger.error(f"Error verifying {chain} transaction: {str(e)}")
-        return False
-    return False
+        print(f"💥 Error verifying {chain} transaction: {str(e)}")
+        return None
 
 @retry_on_failure()
-async def verify_solana_transaction(session: aiohttp.ClientSession, tx_hash: str, 
-                                  expected_amount: float, expected_address: str) -> bool:
-    """Verify Solana transaction."""
-    url = "https://api.mainnet-beta.solana.com"
-    payload = {
-        "jsonrpc": "2.0",
-        "id": 1,
-        "method": "getTransaction",
-        "params": [tx_hash, {"encoding": "json", "commitment": "confirmed"}]
-    }
+async def verify_solana_transaction(session: aiohttp.ClientSession, tx_hash: str) -> Optional[Dict]:
+    """Enhanced Solana transaction verification."""
+    api_url = f"{CHAIN_CONFIGS['SOL']['explorer_api']}/transaction/{tx_hash}"
+    print(f"🌟 Verifying Solana transaction: {tx_hash}")
     
-    async with session.post(url, json=payload) as response:
-        data = await response.json()
-        if data.get("result"):
-            tx_details = data["result"]
-            tx_amount = (tx_details["meta"]["postBalances"][1] - tx_details["meta"]["preBalances"][1]) / 1e9
-            tx_to = tx_details["transaction"]["message"]["accountKeys"][1]
-            return abs(tx_amount - expected_amount) < 0.01 and tx_to == expected_address
-    return False
+    try:
+        async with session.get(api_url) as response:
+            if response.status != 200:
+                print(f"😫 Solana API error: {response.status}")
+                return None
+
+            data = await response.json()
+            if not data or "transaction" not in data:
+                print(f"😕 Invalid Solana transaction data for tx: {tx_hash}")
+                return None
+
+            print(f"✨ Successfully retrieved Solana transaction data for tx: {tx_hash}")
+            return {
+                "amount": float(data["transaction"]["amount"]) / 10**CHAIN_CONFIGS["SOL"]["decimals"],
+                "to_address": data["transaction"]["to"],
+                "from_address": data["transaction"]["from"],
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+            }
+
+    except Exception as e:
+        print(f"💥 Solana verification error: {str(e)}")
+        return None
 
 @retry_on_failure()
-async def verify_evm_transaction(session: aiohttp.ClientSession, chain: str, tx_hash: str,
-                               expected_amount: float, expected_address: str) -> bool:
-    """Verify EVM-based transaction (ETH/BSC/TON)."""
-    api_key = "YOUR_API_KEY"  # Replace with actual API key
-    api_url = f"https://api.{chain.lower()}scan.com/api"
+async def verify_evm_transaction(session: aiohttp.ClientSession, chain: str, tx_hash: str) -> Optional[Dict]:
+    """Enhanced EVM transaction verification with better error handling."""
+    config = CHAIN_CONFIGS.get(chain)
+    if not config:
+        print(f"😱 Missing configuration for chain: {chain}")
+        return None
+
+    api_key = "YXKSM8REVC4CJK93V6WIS26C1EFS9QKMMD"  # Should be stored securely
+    api_url = config["explorer_api"]
+    print(f"🚀 Starting EVM transaction verification for {chain}")
+    
     params = {
         "module": "proxy",
         "action": "eth_getTransactionByHash",
@@ -335,11 +465,32 @@ async def verify_evm_transaction(session: aiohttp.ClientSession, chain: str, tx_
         "apikey": api_key
     }
     
-    async with session.get(api_url, params=params) as response:
-        data = await response.json()
-        if data.get("result"):
-            tx_details = data["result"]
-            tx_amount = int(tx_details["value"], 16) / 1e18
-            tx_to = tx_details["to"]
-            return abs(tx_amount - expected_amount) < 0.0001 and tx_to.lower() == expected_address.lower()
-    return False
+    try:
+        async with session.get(api_url, params=params) as response:
+            if response.status != 200:
+                print(f"😫 {chain} API error: {response.status}")
+                return None
+
+            data = await response.json()
+            result = data.get("result")
+            print(f"📝 Raw transaction data: {result}")
+            if not result:
+                print(f"😕 No transaction data found for {chain} tx: {tx_hash}")
+                return None
+            print(f"🚀 {chain} transaction verification successful for tx: {tx_hash}")
+            print({
+                "amount": int(result["value"],16) / 10**config["decimals"],
+                "to_address": result["to"],
+                "from_address": result["from"]
+            })
+            return {
+                "amount": int(result["value"],16) / 10**config["decimals"],
+                "to_address": result["to"],
+                "from_address": result["from"],
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+
+           
+    except Exception as e:
+        print(f"💥 {chain} verification error1: {str(e)}")
+        return None

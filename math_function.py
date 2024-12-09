@@ -84,9 +84,9 @@ def convert_usd_to_crypto(usd_amount):
             crypto_amount = usd_amount / price
             # Format with appropriate decimal places
             if symbol in ['ETH', 'BSC']:
-                conversions[symbol] = round(crypto_amount, 4)
+                conversions[symbol] = round(crypto_amount, 12)
             else:  # SOL can use more decimal places
-                conversions[symbol] = round(crypto_amount, 2)
+                conversions[symbol] = round(crypto_amount, 12)
         else:
             conversions[symbol] = None
             

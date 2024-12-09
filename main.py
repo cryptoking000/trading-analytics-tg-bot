@@ -10,7 +10,7 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 from sendDM import start_dm_service, stop_dm_service
 from subscribe import payment_start, button_handler
-from callback import address_message_handler, text_message_handler
+from callback import address_message_handler
 import telegram
 from database_function import db
 from datetime import datetime
@@ -74,9 +74,9 @@ def main():
     
     application.add_handler(CallbackQueryHandler(button_handler))
     # application.add_handler(MessageHandler(filters.TEXT, message_handler))
-    application.add_handler(MessageHandler(filters.Regex(r'\A[0-9A-Fa-fx]+\Z'), address_message_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler))
     
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_message_handler))
+    # application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_message_handler))
     # Start the Bot
     print("👟👟Bot is running...")
     

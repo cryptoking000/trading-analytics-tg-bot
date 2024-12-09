@@ -1,7 +1,7 @@
 import sqlitecloud
 from typing import Optional, Dict, Any
 from datetime import datetime
-connection_string = 'sqlitecloud://cqxv3cfvhz.sqlite.cloud:8860/Telegram-Bot-database?apikey=9AK557xjOuWgMqol4itbtJiAEiCiR5uF9r8QI7OvvlI'
+connection_string = 'sqlitecloud://cqxv3cfvhz.sqlite.cloud:8860/Telegaram-bot-database?apikey=9AK557xjOuWgMqol4itbtJiAEiCiR5uF9r8QI7OvvlI'
 
 class UserDatabaseManager:
     """Database manager class for SQLite Cloud operations"""
@@ -31,7 +31,7 @@ class UserDatabaseManager:
                             username TEXT,
                             registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             last_active TIMESTAMP,
-                            paid BOOLEAN DEFAULT FALSE,
+                            is_paid BOOLEAN DEFAULT FALSE,
                             expired_time TIMESTAMP,
                             total_paid_budget INTEGER DEFAULT 0,
                             last_paid_date TIMESTAMP,
@@ -60,7 +60,7 @@ class UserDatabaseManager:
                 'username': 'TEXT',
                 'registration_date': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
                 'last_active': 'TIMESTAMP',
-                'paid': 'BOOLEAN DEFAULT FALSE',
+                'is_paid': 'BOOLEAN DEFAULT FALSE',
                 'expired_time': 'TIMESTAMP',
                 'total_paid_budget': 'INTEGER DEFAULT 0',
                 'last_paid_date': 'TIMESTAMP',
@@ -138,7 +138,7 @@ class UserDatabaseManager:
                         "chat_id": row[1],
                         "username": row[2],
                         "expired_time": row[3],
-                        "paid": row[4],
+                        "is_paid": row[4],
                         "transaction_hash": row[5],
                         "registration_date": row[6],
                         "last_active": row[7],
@@ -171,7 +171,7 @@ class UserDatabaseManager:
                         "chat_id": result[1],
                         "username": result[2],
                         "expired_time": result[3],
-                        "paid": result[4],
+                        "is_paid": result[4],
                         "transaction_hash": result[5],
                         "registration_date": result[6],
                         "last_active": result[7],
@@ -189,114 +189,101 @@ class UserDatabaseManager:
             return None
 
     def update_user_data(self, chat_id: int, **kwargs) -> bool:
-        """Update user payment status and related fields
+        """Update user data, always updating last_active and username if provided
         
         Args:
             chat_id (int): The chat ID of the user to update
-            **kwargs: Fields to update, which can include:
-                - paid (bool): Payment status
-                - payment_method (str): Method of payment
-                - transaction_hash (str): Transaction hash
-                - expired_time (str): Expiration timestamp
-                - ETH_wallet_address (str): ETH wallet address
-                - BTC_wallet_address (str): BTC wallet address
-                - USDT_wallet_address (str): USDT wallet address
-                - total_amount (float): Total amount paid
+            **kwargs: Optional fields to update:
+                - username (str): Username to update
+                - any other user data fields
                 
         Returns:
             bool: True if update successful, False otherwise
         """
-        VALID_FIELDS = {
-            'paid': 'paid = ?',
-            'payment_method': 'payment_method = ?',
-            'transaction_hash': 'transaction_hash = ?', 
-            'expired_time': 'expired_time = ?',
-            'ETH_wallet_address': 'ETH_wallet_address = ?',
-            'BTC_wallet_address': 'BTC_wallet_address = ?',
-            'USDT_wallet_address': 'USDT_wallet_address = ?',
-            'total_amount': 'total_amount = ?',
-            'username': 'username = ?',
-            'last_active': 'last_active = ?',
-            'last_paid_date': 'last_paid_date = ?',
-            'total_paid_budget': 'total_paid_budget = ?',
-            'chat_id': 'chat_id = ?'
-        }
-
         try:
             with sqlitecloud.connect(self.connection_string) as conn:
                 cursor = conn.cursor()
-                
-                # Build dynamic update query based on provided fields
-                update_fields = []
-                values = []
-                
-                # Add last_active timestamp
+
+                # Always update last_active
                 current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                update_fields.append('last_active = ?')
-                values.append(current_time)
+                update_fields = ['last_active = ?']
+                values = [current_time]
+                print(f"🕒 Setting last_active to {current_time}")
 
-                # Check expiry time and update paid status
-                cursor.execute('''
-                    SELECT expired_time 
-                    FROM user_data 
-                    WHERE chat_id = ?
-                ''', (chat_id,))
-                result = cursor.fetchone()
-                if result and result[0]:
-                    expiry_time = datetime.strptime(result[0], '%Y-%m-%d %H:%M:%S')
-                    current_datetime = datetime.now()
-                    if current_datetime > expiry_time:
+                # Check if user exists
+                cursor.execute('SELECT expired_time FROM user_data WHERE chat_id = ?', (chat_id,))
+                existing_user = cursor.fetchone()
+                print(f"👤 Checking user {chat_id}: {'Exists' if existing_user else 'New user'}")
+
+                if existing_user:
+                    # Always update username if provided
+                    if 'username' in kwargs:
+                        update_fields.append('username = ?')
+                        values.append(kwargs['username'])
+                        print(f"📝 Updating username to: {kwargs['username']}")
+
+                    # Update paid status based on expiry time
+                    if existing_user[0]:  # If expiry time exists
+                        expiry_time = datetime.strptime(existing_user[0], '%Y-%m-%d %H:%M:%S')
+                        is_paid = datetime.now() <= expiry_time
                         update_fields.append('paid = ?')
-                        values.append(False)
-                        kwargs.pop('paid', None)  # Remove paid from kwargs if exists
-                
-                # Process only valid fields
-                for field, sql in VALID_FIELDS.items():
-                    if field in kwargs:
-                        update_fields.append(sql)
-                        values.append(kwargs[field])
+                        values.append(is_paid)
+                        print(f"💰 Subscription status: {'Active' if is_paid else 'Expired'}")
+                        print(f"📅 Expiry time: {expiry_time}")
+                    else:
+                        is_paid = False  # Default to False if no expiry time
+                        update_fields.append('is_paid = ?')
+                        values.append(is_paid)
+                    # Update other provided fields
+                    for field, value in kwargs.items():
+                        if field not in ['username', 'chat_id', 'last_active', 'is_paid']:
+                            update_fields.append(f'{field} = ?')
+                            values.append(value)
+                            print(f"✏️ Updating {field} to: {value}")
 
-                # Handle paid status update specially
-                if kwargs.get('paid'):
-                    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    update_fields.extend([
-                        'last_paid_date = ?',
-                        'total_paid_budget = COALESCE(total_paid_budget, 0) + 1'
-                    ])
-                    values.append(current_time)
-                
-                # Handle total_amount update
-                if 'total_amount' in kwargs:
-                    update_fields.append('total_amount = COALESCE(total_amount, 0) + ?')
-                    values.append(kwargs['total_amount'])
-                
-                if not update_fields:
-                    return False
-                    
-                # Build and execute update query
-                query = f'''
-                    UPDATE user_data 
-                    SET {', '.join(update_fields)}
-                    WHERE chat_id = ?
-                '''
-                values.append(chat_id)
-                
-                # First check if user exists
-                cursor.execute('SELECT 1 FROM user_data WHERE chat_id = ?', (chat_id,))
-                exists = cursor.fetchone()
-                
-                if not exists:
-                    # Insert new user if doesn't exist
-                    cursor.execute('INSERT INTO user_data (chat_id) VALUES (?)', (chat_id,))
-                
-                # Now do the update
-                cursor.execute(query, tuple(values))
+                    # Execute update
+                    query = f'''
+                        UPDATE user_data 
+                        SET {', '.join(update_fields)}
+                        WHERE chat_id = ?
+                    '''
+                    values.append(chat_id)
+                    cursor.execute(query, tuple(values))
+                    print("🔄 Executing UPDATE query")
+
+                else:
+                    # Create new user with minimal required fields
+                    fields = ['chat_id', 'last_active']
+                    values = [chat_id, current_time]
+                    print(f"➕ Creating new user with chat_id: {chat_id}")
+
+                    if 'username' in kwargs:
+                        fields.append('username')
+                        values.append(kwargs['username'])
+                        print(f"👤 Setting initial username: {kwargs['username']}")
+
+                    # Add any other provided fields
+                    for field, value in kwargs.items():
+                        if field not in ['username', 'chat_id', 'last_active']:
+                            fields.append(field)
+                            values.append(value)
+                            print(f"📝 Setting initial {field}: {value}")
+
+                    placeholders = ['?' for _ in fields]
+                    query = f'''
+                        INSERT INTO user_data ({', '.join(fields)})
+                        VALUES ({', '.join(placeholders)})
+                    '''
+                    cursor.execute(query, tuple(values))
+                    print("➕ Executing INSERT query")
+
                 conn.commit()
-                print(f"User payment data updated for chat_id: {chat_id}")
+                print("✅ Database transaction committed successfully")
                 return True
-                
+
         except Exception as e:
-            print(f"Error updating user payment data: {e}")
+            print(f"❌ Error updating user data: {e}")
+            print(f"📋 Debug info - chat_id: {chat_id}, kwargs: {kwargs}")
             return False
     def delete_user(self, chat_id: int) -> bool:
         """Delete a user from database"""

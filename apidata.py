@@ -6,8 +6,7 @@ from datetime import datetime
 from database_function import db
 
 async def fetch_trading_pair_data(pair_address, chat_id):  # Added chat_id parameter
-    last_active = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    db.add_user(chat_id=chat_id, last_active=last_active)
+    
     api_searchurl = f"https://api.dexscreener.com/latest/dex/search?q={pair_address}"
     response = requests.get(api_searchurl)
     if response.status_code == 200:

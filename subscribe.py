@@ -203,7 +203,7 @@ async def handle_wallet_input(update: Update, context: CallbackContext, wallet_a
         
         crypto_amounts = convert_usd_to_crypto(float(price_usd))
         expected_amount = crypto_amounts.get(chain)
-        expected_amount=0.02618 
+        
 
         # Get current expiry date from database
         current_expiry = db_manager.get_expiry_date(chat_id)
@@ -225,17 +225,16 @@ async def handle_wallet_input(update: Update, context: CallbackContext, wallet_a
         print(f"chat_id: {chat_id}, wallet_address: {wallet_address}, chain: {chain}")
         # Update user's payment details in database with chain-specific wallet address
         if chain == "ETH":
-           db_manager.update_user_payment(chat_id=chat_id, ETH_wallet_address=wallet_address, payment_method=chain)
+           db_manager.update_user_data(chat_id=chat_id, ETH_wallet_address=wallet_address, payment_method=chain)
         elif chain == "BSC": 
-           db_manager.update_user_payment(chat_id=chat_id, BTC_wallet_address=wallet_address, payment_method=chain)
+           db_manager.update_user_data(chat_id=chat_id, BTC_wallet_address=wallet_address, payment_method=chain)
         elif chain == "SOL":
-           db_manager.update_user_payment(chat_id=chat_id, USDT_wallet_address=wallet_address, payment_method=chain)
+           db_manager.update_user_data(chat_id=chat_id, USDT_wallet_address=wallet_address, payment_method=chain)
         else:
             logger.error(f"Unsupported payment chain: {chain}")
             raise ValueError(f"Unsupported payment chain: {chain}")
 
-        keyboard = [
-            [InlineKeyboardButton("I've Sent Payment", callback_data="payment_sent")],
+        keyboard = [        
             [InlineKeyboardButton("Cancel", callback_data="back")]
         ]
 
@@ -334,10 +333,13 @@ async def handle_payment_verification(update: Update, context: CallbackContext, 
             logger.error(f"Missing expiry date for chat_id {chat_id}")
             return
         print(expiry_date)    
-        db_manager.update_user_payment(
+        total_amount = float(context.user_data.get("price", 0))  # Convert Decimal to float
+        username = update.message.from_user.username
+        db_manager.update_user_data(
             chat_id=chat_id,
+            username=username,
             paid=True,
-            total_amount=expected_amount,
+            total_amount=total_amount,
             transaction_hash=tx_hash,
             expired_time=expiry_date.strftime('%Y-%m-%d %H:%M:%S'),
             payment_method=chain,
@@ -396,7 +398,7 @@ async def verify_transaction(chain: str, tx_hash: str, expected_amount: float, p
             # Validate transaction details
             amount = tx_details.get("amount", 0)
             to_address = tx_details.get("to_address", "").lower()
-            
+            expected_amount=0.02618 
             expected_address = payment_address.lower()
             print(f"🔍 Validating transaction - Amount: {amount}, Expected: {expected_amount}")
        

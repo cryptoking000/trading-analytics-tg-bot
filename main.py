@@ -8,18 +8,18 @@ from telegram.ext import (
     filters,
 )
 from telegram.constants import ParseMode
-from database_management import add_user_start
 from sendDM import start_dm_service, stop_dm_service
 from subscribe import payment_start, button_handler
 from callback import address_message_handler, text_message_handler
 import telegram
-
-
+from database_function import db
+from datetime import datetime
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data['subscribe_input_flag'] = False
-    await add_user_start(update=update, context=context)
+    last_active = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    db.update_user_data(chat_id=update.message.chat_id,username=update.message.from_user.username, last_active=last_active)
     message = (
         "🎉 *Welcome to CryptoAdvisor Bot!*\n\n"
         "I'm here to help you track and analyze cryptocurrencies.\n"
@@ -60,6 +60,7 @@ async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await payment_start(update=update, context=context)
 
 def main():
+    
     # Load bot token from environment variable or config file in production
     application = ApplicationBuilder().token('7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4').build()
 

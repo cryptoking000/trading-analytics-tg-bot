@@ -4,7 +4,8 @@ from subscribe import handle_wallet_input, handle_payment_verification
 from telegram.constants import ParseMode
 from apidata import fetch_trading_pair_data
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
-
+from datetime import datetime
+from database_function import db
 # Define a custom filter for hexadecimal strings
 def is_hexadecimal(text):
     try:
@@ -23,6 +24,9 @@ def get_token_keyboard(chain_id, token_address):
     return InlineKeyboardMarkup(keyboard)
 # Bot command and message handlers
 async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    
+    last_active = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    db.update_user_data(chat_id=update.message.chat_id,username=update.message.from_user.username, last_active=last_active)
     current_state = context.user_data.get("current_state", "")
     print("🎈🎈🎈c",context.user_data)
     if not context.user_data.get('subscribe_input_flag', False):
@@ -63,7 +67,7 @@ async def text_message_handler(update: Update, context: ContextTypes.DEFAULT_TYP
     print("🎈🎈aaa🎈",context.user_data.get('subscribe_input_flag'))
     if not context.user_data.get('subscribe_input_flag'):
         await update.message.reply_text('Sorry, I don\'t understand that command. Please try again.')
-    print("main🎈",context.user_data)
+    
 
     
 # async def address_message_handler(update: Update, context: CallbackContext) -> None:

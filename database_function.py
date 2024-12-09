@@ -99,31 +99,31 @@ class UserDatabaseManager:
             print(f"Error adding column: {e}")
             return False
 
-    def add_user(self, chat_id: int, username: str = None, 
-                 expired_time: str = None, paid: bool = False,
-                 transaction_hash: str = None,
-                 last_active: str = None,
-                ) -> bool:
-        """Add or update a user in the database"""
-        try:
-            with sqlitecloud.connect(self.connection_string) as conn:
-                cursor = conn.cursor()
-                cursor.execute('''
-                    INSERT INTO user_data 
-                    (chat_id, username, expired_time, paid, transaction_hash, last_active)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(chat_id) DO UPDATE SET
-                        username=excluded.username,
-                        expired_time=excluded.expired_time,
-                        paid=excluded.paid,
-                        transaction_hash=excluded.transaction_hash,
-                        last_active=excluded.last_active
-                ''', (chat_id, username, expired_time, paid, transaction_hash, last_active))
-                conn.commit()
-                return True
-        except Exception as e:
-            print(f"Error adding/updating user: {e}")
-            return False
+    # def add_user(self, chat_id: int, username: str = None, 
+    #              expired_time: str = None, paid: bool = False,
+    #              transaction_hash: str = None,
+    #              last_active: str = None,
+    #             ) -> bool:
+    #     """Add or update a user in the database"""
+    #     try:
+    #         with sqlitecloud.connect(self.connection_string) as conn:
+    #             cursor = conn.cursor()
+    #             cursor.execute('''
+    #                 INSERT INTO user_data 
+    #                 (chat_id, username, expired_time, paid, transaction_hash, last_active)
+    #                 VALUES (?, ?, ?, ?, ?, ?)
+    #                 ON CONFLICT(chat_id) DO UPDATE SET
+    #                     username=excluded.username,
+    #                     expired_time=excluded.expired_time,
+    #                     paid=excluded.paid,
+    #                     transaction_hash=excluded.transaction_hash,
+    #                     last_active=excluded.last_active
+    #             ''', (chat_id,last_active))
+    #             conn.commit()
+    #             return True
+    #     except Exception as e:
+    #         print(f"Error adding/updating user: {e}")
+    #         return False
 
     def get_all_users(self) -> list:
         """Get all users from database"""
@@ -188,7 +188,7 @@ class UserDatabaseManager:
             print(f"Error getting user: {e}")
             return None
 
-    def update_user_payment(self, chat_id: int, **kwargs) -> bool:
+    def update_user_data(self, chat_id: int, **kwargs) -> bool:
         """Update user payment status and related fields
         
         Args:
@@ -214,7 +214,11 @@ class UserDatabaseManager:
             'ETH_wallet_address': 'ETH_wallet_address = ?',
             'BTC_wallet_address': 'BTC_wallet_address = ?',
             'USDT_wallet_address': 'USDT_wallet_address = ?',
-            'total_amount': 'total_amount = ?'
+            'total_amount': 'total_amount = ?',
+            'username': 'username = ?',
+            'last_active': 'last_active = ?',
+            'last_paid_date': 'last_paid_date = ?',
+            'total_paid_budget': 'total_paid_budget = ?'
         }
 
         try:
@@ -236,15 +240,19 @@ class UserDatabaseManager:
                     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     update_fields.extend([
                         'last_paid_date = ?',
-                        'total_paid_budget = total_paid_budget + 1'
+                        'total_paid_budget = COALESCE(total_paid_budget, 0) + 1'
                     ])
                     values.append(current_time)
+                
+                # Handle total_amount update
                 if 'total_amount' in kwargs:
-                    update_fields.append('total_amount = total_amount + ?')
+                    update_fields.append('total_amount = COALESCE(total_amount, 0) + ?')
                     values.append(kwargs['total_amount'])
+                
                 if not update_fields:
                     return False
                     
+                # Build and execute update query
                 query = f'''
                     UPDATE user_data 
                     SET {', '.join(update_fields)}
@@ -252,6 +260,15 @@ class UserDatabaseManager:
                 '''
                 values.append(chat_id)
                 
+                # First check if user exists
+                cursor.execute('SELECT 1 FROM user_data WHERE chat_id = ?', (chat_id,))
+                exists = cursor.fetchone()
+                
+                if not exists:
+                    # Insert new user if doesn't exist
+                    cursor.execute('INSERT INTO user_data (chat_id) VALUES (?)', (chat_id,))
+                
+                # Now do the update
                 cursor.execute(query, tuple(values))
                 conn.commit()
                 print(f"User payment data updated for chat_id: {chat_id}")

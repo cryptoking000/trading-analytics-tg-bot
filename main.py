@@ -99,6 +99,7 @@ async def stop_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     await stop_dm_service()
 
 async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    context.user_data['subscribe_input_flag'] = True
     await payment_start(update=update, context=context)
 
 def main():

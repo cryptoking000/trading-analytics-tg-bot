@@ -287,19 +287,6 @@ async def handle_payment_verification(update: Update, context: CallbackContext, 
             "Please ensure you've sent the correct amount and provided the correct transaction hash."
         )
 
-async def address_message_handler(update: Update, context: CallbackContext) -> None:
-    """Handle text replies from the user."""
-    
-    #     chat_id = update.effective_chat.id
-    current_state = context.user_data.get("current_state", "")
-    
-    print("🎈🎈🎈",context.user_data)
-    if context.user_data.get('subscribe_input_flag', True):
-        if current_state == "wallet_input":
-            await handle_wallet_input(update, context, update.message.text.strip())
-        elif current_state == "awaiting_payment":
-            await handle_payment_verification(update, context, update.message.text.strip())
-
 @retry_on_failure()
 async def verify_transaction(chain: str, tx_hash: str, expected_amount: float, expected_address: str) -> bool:
     """Verify the transaction based on the chain."""

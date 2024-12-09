@@ -1,9 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    CallbackContext,
-    MessageHandler,
-    filters
-)
+from telegram.ext import CallbackContext, ContextTypes
+
 from math_function import convert_usd_to_crypto
 import aiohttp
 import logging
@@ -30,9 +27,9 @@ db_manager = UserDatabaseManager()
 # Enhanced Constants with more options
 WALLET_ADDRESSES: Dict[str, str] = {
     "BSC": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-    "ETH": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+    "ETH": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e", 
     "SOL": "8njqnN9ZRQkvUFPNzjEU1mXMfPrC54zugmUeZoAYR659",
-    "MATIC": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+    "TON": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
 }
 
 SUBSCRIPTION_PLANS = [
@@ -100,7 +97,7 @@ async def payment_start(update: Update, context: CallbackContext) -> None:
     """Initialize the enhanced subscription process."""
     chat_id = update.effective_chat.id
     logger.info(f"Starting payment process for chat_id: {chat_id}")
-
+    print("🎈",context.user_data)
     keyboard = get_duration_keyboard()
     message = (
         "🔥 *Premium Subscription Plans*\n\n"
@@ -159,7 +156,7 @@ async def handle_payment_chain_selection(update: Update, context: CallbackContex
         "payment_chain": chain,
         "current_state": "wallet_input"
     })
-
+    
     message = (
         "Please enter your wallet address for receiving rewards.\n\n"
         "This wallet will be used for future reward distributions and premium features."
@@ -290,15 +287,18 @@ async def handle_payment_verification(update: Update, context: CallbackContext, 
             "Please ensure you've sent the correct amount and provided the correct transaction hash."
         )
 
-async def message_handler(update: Update, context: CallbackContext) -> None:
+async def address_message_handler(update: Update, context: CallbackContext) -> None:
     """Handle text replies from the user."""
-    chat_id = update.effective_chat.id
+    
+    #     chat_id = update.effective_chat.id
     current_state = context.user_data.get("current_state", "")
-
-    if current_state == "wallet_input":
-        await handle_wallet_input(update, context, update.message.text.strip())
-    elif current_state == "awaiting_payment":
-        await handle_payment_verification(update, context, update.message.text.strip())
+    
+    print("🎈🎈🎈",context.user_data)
+    if context.user_data.get('subscribe_input_flag', True):
+        if current_state == "wallet_input":
+            await handle_wallet_input(update, context, update.message.text.strip())
+        elif current_state == "awaiting_payment":
+            await handle_payment_verification(update, context, update.message.text.strip())
 
 @retry_on_failure()
 async def verify_transaction(chain: str, tx_hash: str, expected_amount: float, expected_address: str) -> bool:
@@ -307,7 +307,7 @@ async def verify_transaction(chain: str, tx_hash: str, expected_amount: float, e
         async with aiohttp.ClientSession() as session:
             if chain == "SOL":
                 return await verify_solana_transaction(session, tx_hash, expected_amount, expected_address)
-            elif chain in ("BSC", "ETH", "MATIC"):
+            elif chain in ("BSC", "ETH", "TON"):
                 return await verify_evm_transaction(session, chain, tx_hash, expected_amount, expected_address)
     except Exception as e:
         logger.error(f"Error verifying {chain} transaction: {str(e)}")
@@ -338,7 +338,7 @@ async def verify_solana_transaction(session: aiohttp.ClientSession, tx_hash: str
 @retry_on_failure()
 async def verify_evm_transaction(session: aiohttp.ClientSession, chain: str, tx_hash: str,
                                expected_amount: float, expected_address: str) -> bool:
-    """Verify EVM-based transaction (ETH/BSC/MATIC)."""
+    """Verify EVM-based transaction (ETH/BSC/TON)."""
     api_key = "YOUR_API_KEY"  # Replace with actual API key
     api_url = f"https://api.{chain.lower()}scan.com/api"
     params = {

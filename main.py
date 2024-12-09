@@ -11,7 +11,7 @@ from telegram.constants import ParseMode
 from database_management import add_user_start
 from apidata import fetch_trading_pair_data
 from sendDM import start_dm_service, stop_dm_service
-from subscribe import payment_start, button_handler, message_handler
+from subscribe import payment_start, button_handler, address_message_handler
 
 # Define a custom filter for hexadecimal strings
 def is_hexadecimal(text):
@@ -21,36 +21,43 @@ def is_hexadecimal(text):
     except ValueError:
         return False
 
-# Bot command and message handlers
-async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    hex_data = update.message.text
-    print(f'hex_data: {hex_data}')
-    
-    try:
-        # Send typing action while processing
-        await update.message.chat.send_action(action="typing")
+# # Bot command and message handlers
+# async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+#     if not context.user_data.get('subscribe_input_flag', False):
+#         hex_data = update.message.text
+#         print(f'hex_data: {hex_data}')
         
-        # Fetch trading data
-        trading_data, banner_url = await fetch_trading_pair_data(hex_data, update.message.chat_id)
-        chain_id=trading_data.split('\n')[1].split('@')[0].split()[-1]
-        if banner_url:
-            # Send photo with caption
-            await update.message.reply_photo(
-                photo=banner_url, 
-                caption=trading_data, 
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=get_token_keyboard(chain_id, hex_data)
-            )
-        else:
-            # Send only text if no photo URL
-            await update.message.reply_text(
-                trading_data, 
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=get_token_keyboard(chain_id, hex_data)
-            )
+#         try:
+#             # Send typing action while processing
+#             await update.message.chat.send_action(action="typing")
+            
+#             # Fetch trading data
+#             trading_data, banner_url = await fetch_trading_pair_data(hex_data, update.message.chat_id)
+#             chain_id=trading_data.split('\n')[1].split('@')[0].split()[-1]
+#             if banner_url:
+#                 # Send photo with caption
+#                 await update.message.reply_photo(
+#                     photo=banner_url, 
+#                     caption=trading_data, 
+#                     parse_mode=ParseMode.MARKDOWN,
+#                     reply_markup=get_token_keyboard(chain_id, hex_data)
+#                 )
+#             else:
+#                 # Send only text if no photo URL
+#                 await update.message.reply_text(
+#                     trading_data, 
+#                     parse_mode=ParseMode.MARKDOWN,
+#                     reply_markup=get_token_keyboard(chain_id, hex_data)
+#                 )
+        
+#         except Exception as e:
+#             await update.message.reply_text('Sorry, I was unable to fetch trading data. Please try again later.')
     
-    except Exception as e:
-        await update.message.reply_text('Sorry, I was unable to fetch trading data. Please try again later.')
+async def text_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    print("🎈🎈aaa🎈",context.user_data.get('subscribe_input_flag'))
+    if not context.user_data.get('subscribe_input_flag'):
+        await update.message.reply_text('Sorry, I don\'t understand that command. Please try again.')
+    print("main🎈",context.user_data)
 
 def get_token_keyboard(chain_id, token_address):
     keyboard = [
@@ -62,6 +69,7 @@ def get_token_keyboard(chain_id, token_address):
     return InlineKeyboardMarkup(keyboard)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    context.user_data['subscribe_input_flag'] = False
     await add_user_start(update=update, context=context)
     message = (
         "🎉 *Welcome to CryptoAdvisor Bot!*\n\n"
@@ -115,13 +123,13 @@ def main():
     application.add_handler(CommandHandler("stop_sendDm", stop_sendDm))
     
     application.add_handler(CallbackQueryHandler(button_handler))
-    # application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'\A[0-9A-Fa-fx]+\Z'), reply))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+    # application.add_handler(MessageHandler(filters.TEXT, message_handler))
+    application.add_handler(MessageHandler(filters.Regex(r'\A[0-9A-Fa-fx]+\Z'), address_message_handler))
     
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_message_handler))
     # Start the Bot
     print("👟👟Bot is running...")
     application.run_polling(drop_pending_updates=True)
 
 if __name__ == '__main__':
     main()
-

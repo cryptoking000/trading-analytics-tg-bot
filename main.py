@@ -12,7 +12,7 @@ from database_management import add_user_start
 from sendDM import start_dm_service, stop_dm_service
 from subscribe import payment_start, button_handler
 from callback import address_message_handler, text_message_handler
-
+import telegram
 
 
 
@@ -77,7 +77,13 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_message_handler))
     # Start the Bot
     print("👟👟Bot is running...")
-    application.run_polling(drop_pending_updates=True)
-
+    
+    try:
+        application.run_polling(drop_pending_updates=True)
+    except telegram.error.TimedOut:
+        print("Connection timed out. Please check your internet connection and try again.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    
 if __name__ == '__main__':
     main()

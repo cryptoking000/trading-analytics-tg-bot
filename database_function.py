@@ -218,7 +218,8 @@ class UserDatabaseManager:
             'username': 'username = ?',
             'last_active': 'last_active = ?',
             'last_paid_date': 'last_paid_date = ?',
-            'total_paid_budget': 'total_paid_budget = ?'
+            'total_paid_budget': 'total_paid_budget = ?',
+            'chat_id': 'chat_id = ?'
         }
 
         try:
@@ -228,6 +229,26 @@ class UserDatabaseManager:
                 # Build dynamic update query based on provided fields
                 update_fields = []
                 values = []
+                
+                # Add last_active timestamp
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                update_fields.append('last_active = ?')
+                values.append(current_time)
+
+                # Check expiry time and update paid status
+                cursor.execute('''
+                    SELECT expired_time 
+                    FROM user_data 
+                    WHERE chat_id = ?
+                ''', (chat_id,))
+                result = cursor.fetchone()
+                if result and result[0]:
+                    expiry_time = datetime.strptime(result[0], '%Y-%m-%d %H:%M:%S')
+                    current_datetime = datetime.now()
+                    if current_datetime > expiry_time:
+                        update_fields.append('paid = ?')
+                        values.append(False)
+                        kwargs.pop('paid', None)  # Remove paid from kwargs if exists
                 
                 # Process only valid fields
                 for field, sql in VALID_FIELDS.items():
@@ -277,7 +298,6 @@ class UserDatabaseManager:
         except Exception as e:
             print(f"Error updating user payment data: {e}")
             return False
-    
     def delete_user(self, chat_id: int) -> bool:
         """Delete a user from database"""
         try:

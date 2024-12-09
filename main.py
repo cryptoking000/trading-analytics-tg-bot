@@ -1,4 +1,4 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -8,61 +8,18 @@ from telegram.ext import (
     filters,
 )
 from telegram.constants import ParseMode
-from database_management import add_user_start
-from apidata import fetch_trading_pair_data
 from sendDM import start_dm_service, stop_dm_service
-from subscribe import payment_start, button_handler, message_handler
+from subscribe import payment_start, button_handler
+from callback import address_message_handler
+import telegram
+from database_function import db
+from datetime import datetime
 
-# Define a custom filter for hexadecimal strings
-def is_hexadecimal(text):
-    try:
-        int(text, 16)
-        return True
-    except ValueError:
-        return False
-
-# Bot command and message handlers
-async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    hex_data = update.message.text
-    print(f'hex_data: {hex_data}')
-    
-    try:
-        # Send typing action while processing
-        await update.message.chat.send_action(action="typing")
-        
-        # Fetch trading data
-        trading_data, banner_url = await fetch_trading_pair_data(hex_data, update.message.chat_id)
-        chain_id=trading_data.split('\n')[1].split('@')[0].split()[-1]
-        if banner_url:
-            # Send photo with caption
-            await update.message.reply_photo(
-                photo=banner_url, 
-                caption=trading_data, 
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=get_token_keyboard(chain_id, hex_data)
-            )
-        else:
-            # Send only text if no photo URL
-            await update.message.reply_text(
-                trading_data, 
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=get_token_keyboard(chain_id, hex_data)
-            )
-    
-    except Exception as e:
-        await update.message.reply_text('Sorry, I was unable to fetch trading data. Please try again later.')
-
-def get_token_keyboard(chain_id, token_address):
-    keyboard = [
-        [
-            InlineKeyboardButton("📈 View Chart", url=f"https://dexscreener.com/{chain_id}/{token_address}"),
-            InlineKeyboardButton("💰 Buy Token", url=f"https://app.uniswap.org/#/swap?outputCurrency={token_address}")
-        ]
-    ]
-    return InlineKeyboardMarkup(keyboard)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await add_user_start(update=update, context=context)
+    context.user_data['subscribe_input_flag'] = False
+    last_active = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    db.update_user_data(chat_id=update.message.chat_id,username=update.message.from_user.username, last_active=last_active)
     message = (
         "🎉 *Welcome to CryptoAdvisor Bot!*\n\n"
         "I'm here to help you track and analyze cryptocurrencies.\n"
@@ -99,9 +56,11 @@ async def stop_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     await stop_dm_service()
 
 async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    context.user_data['subscribe_input_flag'] = True
     await payment_start(update=update, context=context)
 
 def main():
+    
     # Load bot token from environment variable or config file in production
     application = ApplicationBuilder().token('7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4').build()
 
@@ -114,13 +73,19 @@ def main():
     application.add_handler(CommandHandler("stop_sendDm", stop_sendDm))
     
     application.add_handler(CallbackQueryHandler(button_handler))
-    # application.add_handler(MessageHandler(filters.TEXT & filters.Regex(r'\A[0-9A-Fa-fx]+\Z'), reply))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+    # application.add_handler(MessageHandler(filters.TEXT, message_handler))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler))
     
+    # application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_message_handler))
     # Start the Bot
     print("👟👟Bot is running...")
-    application.run_polling(drop_pending_updates=True)
-
+    
+    try:
+        application.run_polling(drop_pending_updates=True)
+    except telegram.error.TimedOut:
+        print("Connection timed out. Please check your internet connection and try again.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    
 if __name__ == '__main__':
     main()
-

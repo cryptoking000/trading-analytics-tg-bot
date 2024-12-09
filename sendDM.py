@@ -40,7 +40,7 @@ async def send_dm():
                 print(f"Invalid chat_id for user: {user}")
                 continue
                 
-            is_paid = user.get('paid', False)
+            is_paid = user.get('is_paid', False)
             username = user.get('username', 'User')
 
             if chat_id not in processed_chat_ids:

@@ -23,19 +23,7 @@ port = 27017
 
 # Specify the required fields using dot notation
 field_names = [
-    "data.schemaVersion",
-    "data.pairs.chainId",
-    "data.pairs.dexId",
-    "data.pairs.url",
-    "data.pairs.pairAddress",
-    "data.pairs.baseToken.name",
-    "data.pairs.baseToken.symbol",
-    "data.pairs.quoteToken.name",
-    "data.pairs.quoteToken.symbol",
-    "data.pairs.priceNative",
-    "data.pairs.priceUsd",
-    "data.pairs.priceChange.h24",
-    "data.pairs.liquidity.usd",
+    "data"
 ]
 
 # Create a MongoDB reader and load data

@@ -4,9 +4,11 @@ from pymongo import MongoClient
 mongo_uri = "mongodb+srv://andyblake:crs19981106@messagescluster.ci599.mongodb.net/?retryWrites=true&w=majority&appName=MessagesCluster"
 mongo_client = MongoClient(mongo_uri)
 db = mongo_client["telegram_bot_db"]
-token_list = db["token_list"]
-token_data = db["token_data"]
+token_list_collection = db["token_list_collection"]
+token_data_collection = db["token_data_collection"]
 eth_json_file = "https://raw.githubusercontent.com/jab416171/uniswap-pairtokens/master/uniswap_pair_tokens.json"
+
+
 
 def fetch_eth_json_file():
     """Fetch token data from GitHub repository"""
@@ -26,17 +28,17 @@ def get_token_addresses():
     # Save addresses as a single JSON object
     if addresses:
         # Remove existing entries before inserting new ones
-        token_list.delete_many({})
-        token_list.insert_one({"addresses": addresses})
+        token_list_collection.delete_many({})
+        token_list_collection.insert_one({"addresses": addresses})
         print(f"Successfully saved {len(addresses)} token addresses to database")
     else:
         print("Warning: No addresses found to save")
     
     return addresses
 def get_token_data():
-    token_list = db["token_list"]
-    addresses = token_list.find_one({})["addresses"]
-    token_data.delete_many({})
+    token_list_collection = db["token_list_collection"]
+    addresses = token_list_collection.find_one({})["addresses"]
+    token_data_collection.delete_many({})
     for address in addresses:
         api_searchurl = f"https://api.dexscreener.com/latest/dex/search?q={address}"
         try:
@@ -45,7 +47,7 @@ def get_token_data():
             response.raise_for_status()
             
             data = response.json()
-            token_data.insert_one({"data": data})
+            token_data_collection.insert_one({"data": data})
             print(f"Successfully saved {len(data)} token data to database")
         except Exception as e:
             print(f"Error occurred: {e}")

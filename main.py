@@ -15,6 +15,7 @@ import telegram
 from database_function import db
 from datetime import datetime
 
+bot_token = '7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4'
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data['subscribe_input_flag'] = False
@@ -62,7 +63,7 @@ async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 def main():
     
     # Load bot token from environment variable or config file in production
-    application = ApplicationBuilder().token('7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4').build()
+    application = ApplicationBuilder().token('bot_token').build()
 
     # Add handlers
     application.add_handler(CommandHandler("hello", hello))

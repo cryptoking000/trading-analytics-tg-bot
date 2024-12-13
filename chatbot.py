@@ -14,25 +14,31 @@ port = 27017
 
 # Specify the required fields using dot notation
 field_names = ["data"]
-
 async def chat_bot(input_message):
-        
-    # Create a MongoDB reader and load data
-    reader = SimpleMongoReader(host, port)
+    try:
+        # Create a MongoDB reader and load data
+        reader = SimpleMongoReader(host, port)
 
-    print("Loading data from MongoDB...")
-    documents = await reader.load_data(
-        db_name, collection_name, field_names
-    )
-    print(f"Loaded {len(documents)} documents.")
+        print("Loading data from MongoDB...")
+        documents = await reader.load_data(
+            db_name, collection_name, field_names
+        )
+        print(f"Loaded {len(documents)} documents.")
 
-    index = SummaryIndex.from_documents(documents)
-    query_engine = index.as_query_engine(llm=llm)  # Pass the LLM to the query engine
+        if not documents:
+            print("No documents found.")
+            return "No data available."
 
-    query_text = input_message
-    print(f"Querying for: {query_text}")
-    response = query_engine.query(query_text)
+        index = SummaryIndex.from_documents(documents)
+        query_engine = index.as_query_engine(llm=llm)  # Pass the LLM to the query engine
 
-    print("Query response received.")
-    print(response)
-    return response
+        query_text = input_message
+        print(f"Querying for: {query_text}")
+        response = await query_engine.query(query_text)  # Use await here
+
+        print("Query response received.")
+        print(response)
+        return response
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return "An error occurred while processing your request."

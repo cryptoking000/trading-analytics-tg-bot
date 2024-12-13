@@ -14,23 +14,28 @@ port = 27017
 
 # Specify the required fields using dot notation
 field_names = ["data"]
+documents = None  # Initialize documents variable
+
 async def chat_bot(input_message):
+    global documents  # Use global variable to store documents
     try:
-        # Create a MongoDB reader and load data
-        reader = SimpleMongoReader(host, port)
+        if documents is None:  # Check if documents have already been loaded
+            # Create a MongoDB reader and load data
+            reader = SimpleMongoReader(host, port)
 
-        print("Loading data from MongoDB...")
-        documents = await reader.load_data(
-            db_name, collection_name, field_names
-        )
-        print(f"Loaded {len(documents)} documents.")
+            print("Loading data from MongoDB...")
+            documents = await reader.load_data(
+                db_name, collection_name, field_names
+            )
+            print(f"Loaded {len(documents)} documents.")
 
-        if not documents:
-            print("No documents found.")
-            return "No data available."
+            if not documents:
+                print("No documents found.")
+                return "No data available."
 
+        # Use documents without reading again
         index = SummaryIndex.from_documents(documents)
-        query_engine = index.as_query_engine(llm=llm)  # Pass the LLM to the query engine
+        query_engine = index.as_query_engine(llm)  # Pass the LLM to the query engine
 
         query_text = input_message
         print(f"Querying for: {query_text}")

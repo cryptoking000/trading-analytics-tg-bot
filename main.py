@@ -63,7 +63,7 @@ async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 def main():
     
     # Load bot token from environment variable or config file in production
-    application = ApplicationBuilder().token('bot_token').build()
+    application = ApplicationBuilder().token(bot_token).build()
 
     # Add handlers
     application.add_handler(CommandHandler("hello", hello))

@@ -36,8 +36,8 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
                 await update.message.reply_text(f'Token address received: {word}')  # Reply with the token address
               # await update.message.reply_text(f'this is normal word:{word}')
         if hex_data == "":#this is normal message
-            chat_bot(input_message)
-            await update.message.reply_text(f'this is normal message:{input_message}')       
+            output_message = chat_bot(input_message)
+            await update.message.reply_text(f'this is normal message:{output_message}')       
         else:#this is hex_data
             try:
                 await update.message.chat.send_action(action="typing")

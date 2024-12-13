@@ -24,7 +24,7 @@ async def chat_bot(input_message):
             reader = SimpleMongoReader(host, port)
 
             print("Loading data from MongoDB...")
-            documents = await reader.load_data(
+            documents = reader.load_data(
                 db_name, collection_name, field_names
             )
             print(f"Loaded {len(documents)} documents.")
@@ -39,7 +39,7 @@ async def chat_bot(input_message):
 
         query_text = input_message
         print(f"Querying for: {query_text}")
-        response = await query_engine.query(query_text)  # Use await here
+        response = query_engine.query(query_text)  # Use await here
 
         print("Query response received.")
         print(response)

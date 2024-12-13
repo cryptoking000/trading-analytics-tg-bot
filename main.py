@@ -14,7 +14,7 @@ from callback import address_message_handler
 import telegram
 from database_function import db
 from datetime import datetime
-
+import asyncio
 bot_token = '7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4'
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -89,4 +89,4 @@ def main():
         print(f"An error occurred: {e}")
     
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

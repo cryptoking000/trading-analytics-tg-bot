@@ -37,6 +37,7 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
               # await update.message.reply_text(f'this is normal word:{word}')
         if hex_data == "":#this is normal message
             output_message = await chat_bot(input_message)
+            
             await update.message.reply_text(f'this is normal message:{output_message}')       
         else:#this is hex_data
             try:

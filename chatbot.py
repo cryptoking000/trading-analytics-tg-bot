@@ -2,7 +2,7 @@ from llama_index.core import SummaryIndex
 from llama_index.readers.mongodb import SimpleMongoReader
 from IPython.display import Markdown, display
 from llama_index.llms.openai import OpenAI
-
+from chatbot_tavily import tavily_search
 llm = OpenAI(model="gpt-4o-mini", api_key="apikey")  # Use environment variable for API key
 
 mongo_uri = "mongodb+srv://andyblake:crs19981106@messagescluster.ci599.mongodb.net/?retryWrites=true&w=majority&appName=MessagesCluster"
@@ -19,31 +19,23 @@ documents = None  # Initialize documents variable
 async def chat_bot(input_message):
     global documents  # Use global variable to store documents
     try:
-        if documents is None:  # Check if documents have already been loaded
-            # Create a MongoDB reader and load data
-            reader = SimpleMongoReader(host, port)
-
-            print("Loading data from MongoDB...")
-            documents = reader.load_data(
-                db_name, collection_name, field_names
-            )
-            print(f"Loaded {len(documents)} documents.")
-
+        try:
+            documents = await tavily_search(input_message)
             if not documents:
-                print("No documents found.")
-                return "No data available."
+                return "No documents found for the given input."
 
-        # Use documents without reading again
-        index = SummaryIndex.from_documents(documents)
-        query_engine = index.as_query_engine(llm)  # Pass the LLM to the query engine
+            index = SummaryIndex.from_documents(documents)
+            query_engine = index.as_query_engine(llm)  # Pass the LLM to the query engine
 
-        query_text = input_message
-        print(f"Querying for: {query_text}")
-        response = query_engine.query(query_text)  # Use await here
+            query_text = input_message
+            print(f"Querying for: {query_text}")
+            response = await query_engine.query(query_text)  # Use await here
 
-        print("Query response received.")
-        print(response)
-        return response
+            print("Query response received.")
+            return response
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return "An error occurred while processing your request."
     except Exception as e:
         print(f"An error occurred: {e}")
         return "An error occurred while processing your request."

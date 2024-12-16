@@ -20,13 +20,14 @@ async def tavily_search(query):
         # if isinstance(document, dict) and 'result' in document:
         text_list.append(document['content'])
     print("✨🎉✨", text_list)
+    return text_list
     # text_list = []
     # url = "https://dexscreener.com/solana/"
     # document = tavily_client.extract(url)
     # print(document)
     # text_list.append(document['results']['content'])
     # print(text_list)
-    return text_list
+    # return text_list
 
 # if __name__ == "__main__":
 #     print("Starting the asyncio event loop...")

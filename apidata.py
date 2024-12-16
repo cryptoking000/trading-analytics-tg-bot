@@ -4,7 +4,56 @@ from telegram import Bot, InputMediaPhoto
 from math_function import calculate_age, format_number
 from datetime import datetime
 from database_function import db
+def get_token_info(chain,token):  
+    url = f"https://api.coingecko.com/api/v3/coins/{chain}/contract/{token}"
+    response = requests.get(url)
+    data = response.json()
+    return data
 
+# def get_ath(token):
+#     BitQuery_url = "https://streaming.bitquery.io/eap"
+#     headers = {
+#         'Content-Type': 'application/json',
+#         "X-API-KEY": ''
+#         }  
+    
+#     payload = json.dumps({
+#         "query": f"""
+#             {{
+#             Solana {{
+#                 DEXTradeByTokens(
+#                     where: {{Trade: {{Currency: {{MintAddress: {{is: "{token}"}}}}}}}}
+#                     limit: {{count: 1}}
+#                     orderBy: {{descending: Trade_PriceInUSD}}
+#                     ) {{
+#                     Trade {{
+#                         price: PriceInUSD
+#                         }}
+#                     }}
+#                 }}
+#             }}
+#         """,
+#         "variables": "{}"
+#         })
+
+#     response = requests.request("POST", BitQuery_url, headers=headers, data = payload)
+   
+    
+#     if response.status_code == 200:
+#         data = response.json()
+        
+#         # Extract price if available
+#         try:
+#             price = data['data']['Solana']['DEXTradeByTokens'][0]['Trade']['price']
+#             print(price)
+#             return price
+#         except (IndexError, KeyError):
+#             print("No price data found.")
+#             return 0
+#     else:
+#         print(f"Error fetching data: {response.status_code} - {response.text}")
+#         return 0
+    
 async def fetch_trading_pair_data(pair_address):
     api_searchurl = f"https://api.dexscreener.com/latest/dex/search?q={pair_address}"
     try:
@@ -60,13 +109,17 @@ async def fetch_trading_pair_data(pair_address):
         liquidity = safe_get(data, "liquidity", "usd")
         base = safe_get(data, "liquidity", "base")
         quote = safe_get(data, "liquidity", "quote")
-        volume = safe_get(data, "volume", "usd24h")
-        ath = safe_get(data, "ath")
+        volume = safe_get(data, "volume", "h24")
+        # ath = get_ath(pair_address)
         ath_time = safe_get(data, "athChange", "time")
         one_hour_change = safe_get(data, "priceChange", "h1")
         one_hour_volume = safe_get(data, "volume", "h1")
+        twentyfour_hour_change = safe_get(data, "priceChange", "h24")
+        twentyfour_hour_volume = safe_get(data, "volume", "h24")
         one_hour_buy_number = safe_get(data, "txns", "h1", "buys")
         one_hour_sell_number = safe_get(data, "txns", "h1", "sells")
+        twentyfour_hour_buy_number = safe_get(data, "txns", "h24", "buys")
+        twentyfour_hour_sell_number = safe_get(data, "txns", "h24", "sells")
         token_age = safe_get(data, "pairCreatedAt")
         banner_url = safe_get(data, "info", "header")
         socials = safe_get(data, "info", "socials", default=[])
@@ -88,10 +141,13 @@ async def fetch_trading_pair_data(pair_address):
             f"💎 FDV: `${format_number(fdv)}`\n"
             f"💦 Liquidity: `${format_number(liquidity)}[x{base}x{quote}]`\n"
             f"📊 Volume 24h: `${format_number(volume)}` | Age: `{calculate_age(token_age)}`\n"
-            f"⛰️ ATH: `${format_number(ath)} [{ath_time} ago]`\n"
-            f"📈 1H Change: `{one_hour_change}%` | Vol: `${format_number(one_hour_volume)}`\n"
-            f"📊 1H Trades: 🟢`{one_hour_buy_number}` | 🔴`{one_hour_sell_number}`\n"
-            f"🔗 Links: [📊Chart]({banner_url}) [💬TG]({telegram_url}) [🌐Web]({origin_url}) [🐦Twitter]({twitter_url})"
+            # f"⛰️ ATH: `${ath} [{ath_time} ago]`\n"
+            f"📈 1H Change: `{format_number(one_hour_change)}%` | Vol: `${format_number(one_hour_volume)}`\n"
+            f"📈 24H Change: `{format_number(twentyfour_hour_change)}%` | Vol: `${format_number(twentyfour_hour_volume)}`\n"
+            f"📊 1H Trades: 🟢`{format_number(one_hour_buy_number)}` | 🔴`{format_number(one_hour_sell_number)}`\n"
+            f"📊 24H Trades: 🟢`{format_number(twentyfour_hour_buy_number)}` | 🔴`{format_number(twentyfour_hour_sell_number)}`\n\n"
+            # f"🖨️Mint:{'✅' if minted else '❌'} | LP 🔥({format_number(lp_burn_amount)}%)"
+            f"🔗 Links: [📊Chart]({banner_url}) [💬TG]({telegram_url}) [🌐Web]({origin_url}) [🐦Twitter]({twitter_url})\n"
             f"\n`{pair_address}`\n"
             f"\n📌 *Analysis Tools*\n"
             f"[📊DexScreener](https://dexscreener.com/{chain}/{pair_address}) | "

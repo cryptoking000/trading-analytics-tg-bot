@@ -191,7 +191,7 @@ async def handle_payment_chain_selection(update: Update, context: CallbackContex
 async def handle_wallet_input(update: Update, context: CallbackContext, wallet_address: str) -> None:
     """Handle wallet address input."""
     chat_id = update.effective_chat.id
-    
+    username = update.message.from_user.username
     if len(wallet_address) < MIN_WALLET_LENGTH:
         await update.message.reply_text("❌ Invalid wallet address. Please try again.")
         return
@@ -217,6 +217,8 @@ async def handle_wallet_input(update: Update, context: CallbackContext, wallet_a
             expiry_date = datetime.now() + timedelta(days=duration * 30)
 
         context.user_data.update({
+            "chat_id": chat_id,
+            "username": username,
             "wallet_address": wallet_address,
             "expected_amount": price_usd,
             "current_state": "awaiting_payment",
@@ -242,6 +244,7 @@ async def handle_wallet_input(update: Update, context: CallbackContext, wallet_a
             f"💳 *Payment Details*\n\n"
             f"Amount: {expected_amount} {chain} (${price_usd})\n"
             f"Send to address:\n`{WALLET_ADDRESSES[chain]}`\n\n"
+            f"your reward username: {username}\n\n"
             f"Your reward wallet:\n`{wallet_address}`\n\n"
             f"Duration: {duration} {'month' if duration == 1 else 'months'}\n"
             f"Expires: {expiry_date.strftime('%Y-%m-%d')}\n\n"
@@ -338,10 +341,10 @@ async def handle_payment_verification(update: Update, context: CallbackContext, 
         db_manager.update_user_data(
             chat_id=chat_id,
             username=username,
-            is_paid=True,
+            # is_paid=True,
             total_amount=total_amount,
             transaction_hash=tx_hash,
-            last_paid_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            last_paid_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             expired_time=expiry_date.strftime('%Y-%m-%d %H:%M:%S'),
             payment_method=chain,
             ETH_wallet_address=tx_details['from_address'] if chain == "ETH" else None,
@@ -401,12 +404,12 @@ async def verify_transaction(chain: str, tx_hash: str, expected_amount: float, p
             to_address = tx_details.get("to_address", "").lower()
             expected_amount=0.02618 
             expected_address = payment_address.lower()
-            print(f"🔍 Validating transaction - Amount: {amount}, Expected: {expected_amount}")
+            # print(f"🔍 Validating transaction - Amount: {amount}, Expected: {expected_amount}")
        
             if (abs(float(amount) - float(expected_amount)) <= 0.0001 and
                 to_address == expected_address
                 ):
-                print(f"✨ Transaction validation successful for {chain} tx: {tx_hash}")
+                # print(f"✨ Transaction validation successful for {chain} tx: {tx_hash}")
                 return {
                     **tx_details,
                     "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -459,7 +462,7 @@ async def verify_evm_transaction(session: aiohttp.ClientSession, chain: str, tx_
 
     api_key = "YXKSM8REVC4CJK93V6WIS26C1EFS9QKMMD"  # Should be stored securely
     api_url = config["explorer_api"]
-    print(f"🚀 Starting EVM transaction verification for {chain}")
+    # print(f"🚀 Starting EVM transaction verification for {chain}")
     
     params = {
         "module": "proxy",
@@ -480,7 +483,7 @@ async def verify_evm_transaction(session: aiohttp.ClientSession, chain: str, tx_
             if not result:
                 print(f"😕 No transaction data found for {chain} tx: {tx_hash}")
                 return None
-            print(f"🚀 {chain} transaction verification successful for tx: {tx_hash}")
+            # print(f"🚀 {chain} transaction verification successful for tx: {tx_hash}")
             print({
                 "amount": int(result["value"],16) / 10**config["decimals"],
                 "to_address": result["to"],

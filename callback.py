@@ -6,12 +6,18 @@ from apidata import fetch_trading_pair_data
 from datetime import datetime
 from database_function import db
 from chatbot import chat_bot
+from chatbot_tavily import tavily_search
+from telegram.constants import ChatType, ParseMode
+# from telegram import ChatType
 
 def get_token_keyboard(chain_id, token_address):
     keyboard = [
         [
             InlineKeyboardButton("📈 View Chart", url=f"https://dexscreener.com/{chain_id}/{token_address}"),
             InlineKeyboardButton("💰 Buy Token", url=f"https://app.uniswap.org/#/swap?outputCurrency={token_address}")
+        ],
+        [
+            InlineKeyboardButton("Subscribe", callback_data="subscribe")
         ]
     ]
     return InlineKeyboardMarkup(keyboard)
@@ -35,10 +41,16 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
                 hex_data = word
                 await update.message.reply_text(f'Token address received: {word}')  # Reply with the token address
               # await update.message.reply_text(f'this is normal word:{word}')
-        if hex_data == "":#this is normal message
-            output_message = await chat_bot(input_message)
-            
-            await update.message.reply_text(f'this is normal message:{output_message}')       
+        if hex_data == "":  # this is a normal message
+            if update.effective_chat.type == ChatType.PRIVATE:
+                output_message = await tavily_search(input_message)
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f'this is normal message: {output_message}',
+                    parse_mode=ParseMode.MARKDOWN
+                )  
+            else:
+                pass
         else:#this is hex_data
             try:
                 await update.message.chat.send_action(action="typing")

@@ -20,6 +20,11 @@ def calculate_age(token_created_at):
         age_parts.append(f"{delta.months}m")
     if delta.days > 0:
         age_parts.append(f"{delta.days}d")
+    if delta.hours > 0:
+        age_parts.append(f"{delta.hours}h")
+    if delta.minutes > 0:
+        age_parts.append(f"{delta.minutes}m")
+    
     
     # Join parts with a space
     token_age = " ".join(age_parts) if age_parts else "0d"  # Default to "0d" if no age is found

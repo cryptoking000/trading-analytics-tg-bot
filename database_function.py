@@ -223,20 +223,22 @@ class UserDatabaseManager:
                         print(f"📝 Updating username to: {kwargs['username']}")
 
                     # Update paid status based on expiry time
-                    if existing_user[0]:  # If expiry time exists
+                    if existing_user:  # If expiry time exists
+                        print(existing_user)
                         expiry_time = datetime.strptime(existing_user[0], '%Y-%m-%d %H:%M:%S')
-                        is_paid = datetime.now() <= expiry_time
-                        update_fields.append('paid = ?')
+                        is_paid = 1 if datetime.now() <= expiry_time else 0
+                        update_fields.append('is_paid = ?')
                         values.append(is_paid)
                         print(f"💰 Subscription status: {'Active' if is_paid else 'Expired'}")
                         print(f"📅 Expiry time: {expiry_time}")
                     else:
-                        is_paid = False  # Default to False if no expiry time
+                        is_paid = 0  # Default to False if no expiry time
                         update_fields.append('is_paid = ?')
                         values.append(is_paid)
+                        print(f"📅📅 Expiry time: {expiry_time}")
                     # Update other provided fields
                     for field, value in kwargs.items():
-                        if field not in ['username', 'chat_id', 'last_active', 'is_paid']:
+                        if field not in ['username', 'chat_id'] and value is not None:
                             update_fields.append(f'{field} = ?')
                             values.append(value)
                             print(f"✏️ Updating {field} to: {value}")

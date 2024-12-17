@@ -22,7 +22,7 @@ with open('channel.json', 'r') as file:
     channel_list = channel_data['channels']
 
 limit = 100
-
+channel_list ={["mytestchannel1106","dexscreenerchat"]}
 # MongoDB connection
 mongo_uri = "mongodb+srv://andyblake:crs19981106@messagescluster.ci599.mongodb.net/?retryWrites=true&w=majority&appName=MessagesCluster"
 mongo_client = MongoClient(mongo_uri)
@@ -59,20 +59,23 @@ async def tlg_connect(api_id, api_hash, phone_number):
         print(f'Failed to connect to Telegram: {str(e)}')
         return None
 
-async def collect_messages(client, chat_name, limit):
+async def collect_messages(client, chat_name):
     try:
         # Get chat info 
         chat_info = await client.get_entity(chat_name)
         
-        offset_date = datetime.now() - timedelta(days=7)  # Fetch messages from a week ago
-        messages = await client.get_messages(chat_info, limit=limit, offset_date=offset_date)
+        offset_date = datetime.now() - timedelta(hours=1)  # Fetch messages from a week ago
+        messages = await client.get_messages(chat_info, offset_date=offset_date)
 
-        print(messages)
+        print("messages🎁🎁🎁",messages)
         # return the results in a dictionary
-        return {"messages": messages, "channel": chat_info}
+        return {"messages🧨": messages, "channel🎈": chat_info}
     except Exception as e:
         print(f"Error collecting messages: {e}")
         return None
+
+
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle the /start command."""

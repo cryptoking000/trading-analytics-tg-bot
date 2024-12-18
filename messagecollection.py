@@ -172,9 +172,9 @@ with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
                                 "num_times_mentioned": 1,
                                 "last_mention_date": message.date,
                                 "all_data":{
-                                "token_contract_data(0)": token_contract_data,
                                 "message_date(0)": message.date,
-                                "num_times_mentioned(0)": 1
+                                "num_times_mentioned(0)": 1,
+                                "token_contract_data(0)": token_contract_data,
                                 }
                                 })
                         elif existing_entry["last_mention_date"].strftime("%Y-%m-%d %H:%M:%S") != message.date.strftime("%Y-%m-%d %H:%M:%S"):
@@ -197,9 +197,9 @@ with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
                                 {"$set": {
                                     "all_data": {
                                         **existing_entry["all_data"],  # Preserve previous data
-                                        f"token_contract_data({order_token_contract_data})": token_contract_data,
-                                        f"num_times_mentioned({order_token_contract_data})": num_times_mentioned,  
                                         f"message_date({order_token_contract_data})": message.date,
+                                        f"num_times_mentioned({order_token_contract_data})": num_times_mentioned,  
+                                        f"token_contract_data({order_token_contract_data})": token_contract_data,
                                        
                                     }
                                 }}

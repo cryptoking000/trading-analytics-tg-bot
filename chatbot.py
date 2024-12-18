@@ -9,14 +9,18 @@ llm = OpenAI(model="gpt-4o-mini", api_key="api-key")  # Use environment variable
 
 mongo_uri = "mongodb+srv://andyblake:crs19981106@messagescluster.ci599.mongodb.net/?retryWrites=true&w=majority&appName=MessagesCluster"
 db_name = "telegram_bot_db"
-collection_name = "token_data"
+collection_name = "token_contracts"
 
 host = mongo_uri
 port = 27017
 
 # Specify the required fields using dot notation
-field_names = ["results"]
+field_names = ["token_contract_data(0)"]
+reader = SimpleMongoReader(host, port)
 
+documents = reader.load_data(
+    db_name, collection_name, field_names
+)
 
 
 async def chat_bot(input_message):
@@ -28,14 +32,14 @@ async def chat_bot(input_message):
             you should tell very short and comprehensive answer to the following question: {input_message}
             write in markdown format within 500 words.
             """
-        print("Generated prompt for TavilyClient:")
+        # print("Generated prompt for TavilyClient:")
         print(prompt)
-        text_list = await tavily_search(input_message)
-        # if not documents:
-        #     print("error______")
-        #     return "No documents found for the given input."
+        # text_list = await tavily_search(input_message)
+        # # if not documents:
+        # #     print("error______")
+        # #     return "No documents found for the given input."
        
-        documents = [Document(text=t) for t in text_list]
+        # documents = [Document(text=t) for t in text_list]
         index = SummaryIndex.from_documents(documents)
         query_engine = index.as_query_engine(llm)  # Pass the LLM to the query engine
 

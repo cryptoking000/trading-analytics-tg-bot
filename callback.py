@@ -43,7 +43,8 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
               # await update.message.reply_text(f'this is normal word:{word}')
         if hex_data == "":  # this is a normal message
             if update.effective_chat.type == ChatType.PRIVATE:
-                output_message = await tavily_search(input_message)
+                # output_message = await tavily_search(input_message)
+                output_message = await chat_bot(input_message)
                 await context.bot.send_message(
                     chat_id=update.effective_chat.id,
                     text=f'this is normal message: {output_message}',

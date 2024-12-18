@@ -161,29 +161,28 @@ with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
                             token_collection.insert_one({
                                 **message_dict, 
                                 "num_times_mentioned": 1,
-                                "token_contract_data(0)": token_contract_data 
-                            })
+                                "all_data":{
+                                "token_contract_data(0)": token_contract_data
+                                }
+                                })
                         elif existing_entry["first_mention_date"].strftime("%Y-%m-%d %H:%M:%S") != message.date.strftime("%Y-%m-%d %H:%M:%S"):
                             print("🧨🧨")
                             print(existing_entry["first_mention_date"], message.date.strftime("%Y-%m-%d %H:%M:%S"))
                             print("⌚",datetime.now().hour)
                             num_times_mentioned = existing_entry["num_times_mentioned"] + 1
-                            # print(num_times_mentioned)
-                            token_collection.update_one(
-                                {"token_contracts": {"$in": [message_dict["token_contracts"]]}}, 
-                                {"$set": {
-                                    "num_times_mentioned": num_times_mentioned,  
-                                    "first_mention_date": message.date
-                                }}
-                            )
-                        
                             
                             order_token_contract_data = datetime.now().hour
                             token_collection.update_one(
                                 {"_id": existing_entry["_id"]},
-                                {"$set": {f"token_contract_data({order_token_contract_data})": token_contract_data}}
+                                {"$set": {
+                                    "num_times_mentioned": num_times_mentioned,  
+                                    "all_data": {
+                                        f"num_times_mentioned({order_token_contract_data})": num_times_mentioned,  
+                                        f"message_date({order_token_contract_data})": message.date,
+                                        f"token_contract_data({order_token_contract_data})": token_contract_data
+                                    }
+                                }}
                             )
-                            
                             print("Successfully updated token data")
                     else:
                         None
@@ -193,6 +192,14 @@ with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
             print(f'Have to sleep', e.seconds, 'seconds')
             time.sleep(e.seconds)
         except telethon.errors.rpcerrorlist.ChannelPrivateError:
+            with open('channel.json', 'r+') as file:
+                channel_data = json.load(file)
+                channel_list = channel_data['channels']
+                if channel_username in channel_list:
+                    channel_list.remove(channel_username)
+                    file.seek(0)
+                    json.dump(channel_data, file, indent=4)
+                    file.truncate()
             print(f"Access denied to channel: {channel_username}. It may be private or you lack permissions.")
         except Exception as e:
             print(f"An error occurred: {e}")

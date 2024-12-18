@@ -150,7 +150,7 @@ with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
                         print("🎁", i, message.date,"🎈",token_contracts)
                         message_dict = {
                             "token_contracts": token_contracts,
-                            "first_mention_date": message.date,
+                            "last_mention_date": message.date,
                         }
                         
                         token_contract_data = get_token_contract_data(token_contracts)
@@ -161,13 +161,16 @@ with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
                             token_collection.insert_one({
                                 **message_dict, 
                                 "num_times_mentioned": 1,
+                                "last_mention_date": message.date,
                                 "all_data":{
-                                "token_contract_data(0)": token_contract_data
+                                "token_contract_data(0)": token_contract_data,
+                                "message_date(0)": message.date,
+                                "num_times_mentioned(0)": 1
                                 }
                                 })
-                        elif existing_entry["first_mention_date"].strftime("%Y-%m-%d %H:%M:%S") != message.date.strftime("%Y-%m-%d %H:%M:%S"):
+                        elif existing_entry["last_mention_date"].strftime("%Y-%m-%d %H:%M:%S") != message.date.strftime("%Y-%m-%d %H:%M:%S"):
                             print("🧨🧨")
-                            print(existing_entry["first_mention_date"], message.date.strftime("%Y-%m-%d %H:%M:%S"))
+                            print(existing_entry["last_mention_date"], message.date.strftime("%Y-%m-%d %H:%M:%S"))
                             print("⌚",datetime.now().hour)
                             num_times_mentioned = existing_entry["num_times_mentioned"] + 1
                             
@@ -176,10 +179,19 @@ with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
                                 {"_id": existing_entry["_id"]},
                                 {"$set": {
                                     "num_times_mentioned": num_times_mentioned,  
+                                    "last_mention_date": message.date,
+                                  
+                                }}
+                            )
+                            token_collection.update_one(
+                                {"_id": existing_entry["_id"]},
+                                {"$set": {
                                     "all_data": {
+                                        **existing_entry["all_data"],  # Preserve previous data
+                                        f"token_contract_data({order_token_contract_data})": token_contract_data,
                                         f"num_times_mentioned({order_token_contract_data})": num_times_mentioned,  
                                         f"message_date({order_token_contract_data})": message.date,
-                                        f"token_contract_data({order_token_contract_data})": token_contract_data
+                                       
                                     }
                                 }}
                             )

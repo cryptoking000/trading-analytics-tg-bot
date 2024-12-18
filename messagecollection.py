@@ -4,10 +4,11 @@ from pymongo import MongoClient
 import requests
 import json
 import telethon.errors.rpcerrorlist
+import time
 TELEGRAM_API_ID = '20774786'
 TELEGRAM_API_HASH = '9d57e018be785b18b245632f508302f2'
 phone_number = '+17344305801'  # Fixed: Added quotes to make it a string
-session_name = 'telegram_messages_session9'
+session_name = 'telegram_messages_session'
 mongo_uri = "mongodb+srv://andyblake:crs19981106@messagescluster.ci599.mongodb.net/?retryWrites=true&w=majority&appName=MessagesCluster"
 mongo_client = MongoClient(mongo_uri)
 db = mongo_client["telegram_bot_db"]
@@ -188,11 +189,13 @@ with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
                         None
                 else:
                     break
+        except telethon.errors.rpcerrorlist.FloodWaitError as e:
+            print(f'Have to sleep', e.seconds, 'seconds')
+            time.sleep(e.seconds)
         except telethon.errors.rpcerrorlist.ChannelPrivateError:
             print(f"Access denied to channel: {channel_username}. It may be private or you lack permissions.")
         except Exception as e:
             print(f"An error occurred: {e}")
-
 
 print("🎁", offset)
 print("🎁", datetime.now())

@@ -85,6 +85,12 @@ def get_token_contract_data(token_contracts):
     buys_number_m5 = safe_get(data, "txns", "m5", "buys")
     sells_number_m5 = safe_get(data, "txns", "m5", "sells")
     token_age = safe_get(data, "pairCreatedAt")   
+    socials = safe_get(data, "info", "socials", default=[])
+    websites = safe_get(data, "info", "websites", default=[])   
+
+    origin_url = next((website.get("url") for website in websites if website.get("label") == "Website"), "#")
+    telegram_url = next((social.get("url") for social in socials if social.get("type") == "telegram"), "#")
+    twitter_url = next((social.get("url") for social in socials if social.get("type") == "twitter"), "#")
 
     token_data = {
         "token_contracts": token_contracts,
@@ -132,7 +138,10 @@ def get_token_contract_data(token_contracts):
                 "m5": sells_number_m5
             }
         },
-        "token_age": token_age
+        "token_age": token_age,
+        "origin_url": origin_url,
+        "telegram_url": telegram_url,
+        "twitter_url": twitter_url
     }
     return token_data
 

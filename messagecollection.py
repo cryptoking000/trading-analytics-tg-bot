@@ -14,7 +14,7 @@ TELEGRAM_API_HASH = os.getenv("TELEGRAM_API_HASH")
 
 phone_number = os.getenv("phone_number")  # Fixed: Added quotes to make it a string
 session_name = 'telegram_messages_session'
-mongo_uri = os.getenv("DATABASE_URL")
+mongo_uri = os.getenv("MONGO_URI")
 mongo_client = MongoClient(mongo_uri)
 db = mongo_client["telegram_bot_db"]
 token_collection = db["token_contracts"]
@@ -27,6 +27,9 @@ i = 0 #message count
 k = 0 #channel count
 days = 10 #days to search
 offset = datetime.now() - timedelta(days=days)#offset date
+
+# Start number for cycle
+start_number = 5  # You can set this to the desired starting index
 
 def extract_token_contracts(message):
     if message:
@@ -151,7 +154,7 @@ def get_token_contract_data(token_contracts):
     return token_data
 
 with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
-    for channel_username in channel_list:
+    for channel_username in channel_list[start_number:]:  # Start from the specified index
        
         k += 1
         print("🎁🎁🎁🎁", k,"/",len(channel_list), channel_username)
@@ -232,4 +235,3 @@ with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
 
 print("🎁", offset)
 print("🎁", datetime.now())
-

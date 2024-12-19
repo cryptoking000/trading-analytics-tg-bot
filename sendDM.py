@@ -5,6 +5,7 @@ import json
 from database_function import db
 import os
 from dotenv import load_dotenv
+from ai_insight import ai_insight
 load_dotenv()
 TOKEN = os.getenv("bot_token")
  # Default chat_id if no recent messages
@@ -49,6 +50,7 @@ async def send_dm():
                 message = (
                     f"Hello {username}!\n\n"
                     f"{' Thank you for being our premium member!' if is_paid else '💫 Upgrade to premium for more features!'}\n"
+                    f"{f'{ai_insight()}' if is_paid else ''}"
                     f"Use /help to see available commands."
                 )
                 
@@ -77,7 +79,7 @@ async def periodic_dm():
         print("DM service cancelled")
     except Exception as e:
         print(f"Error in DM service: {str(e)}")
-        await asyncio.sleep(5)  # Short sleep on error
+        await asyncio.sleep(50)  # Short sleep on error
         asyncio.create_task(periodic_dm())  # Retry on error
 
 async def start_dm_service():

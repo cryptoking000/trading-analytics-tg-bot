@@ -20,10 +20,16 @@ bot_token = '7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4'
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data['subscribe_input_flag'] = False
     last_active = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    db.update_user_data(chat_id=update.message.chat_id,username=update.message.from_user.username, last_active=last_active)
+    db.update_user_data(chat_id=update.message.chat_id, username=update.message.from_user.username, last_active=last_active)
+    expired_time =db.get_user(update.message.chat_id).get("expired_time")
+    if expired_time is None:
+        expired_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     message = (
         "🎉 *Welcome to CryptoAdvisor Bot!*\n\n"
         "I'm here to help you track and analyze cryptocurrencies.\n"
+        "I can help you find the best tokens to invest in.\n"
+        f"{'Your subscription is active' if expired_time > datetime.now().strftime('%Y-%m-%d %H:%M:%S') else 'Your subscription is expired'}\n"
+        f"your expired time is {expired_time}\n"
         "Run /help to see all available commands."
     )
     await update.message.reply_text(text=message, parse_mode=ParseMode.MARKDOWN)

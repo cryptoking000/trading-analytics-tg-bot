@@ -1,0 +1,6 @@
+2024-12-19 17:31:25,480 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4/getMe "HTTP/1.1 200 OK"
+2024-12-19 17:31:25,861 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4/deleteWebhook "HTTP/1.1 200 OK"
+2024-12-19 17:31:25,861 - apscheduler.scheduler - INFO - Scheduler started
+2024-12-19 17:31:25,861 - telegram.ext.Application - INFO - Application started
+2024-12-19 17:31:37,706 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4/getUpdates "HTTP/1.1 200 OK"
+2024-12-19 17:31:48,070 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4/getUpdates "HTTP/1.1 200 OK"

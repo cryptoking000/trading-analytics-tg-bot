@@ -4,7 +4,7 @@ from telegram.ext import CallbackContext, ContextTypes
 from math_function import convert_usd_to_crypto
 import aiohttp
 import logging
-from database_function import UserDatabaseManager, db
+from database_function import db
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
 from decimal import Decimal
@@ -22,18 +22,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize database manager
-db_manager = UserDatabaseManager()
 
 # Enhanced Constants with more options
 WALLET_ADDRESSES: Dict[str, str] = {
-    "BSC": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-    "ETH": "0x310166751C19a2b1C37129a52ff8b433D8C6Df17", 
-    "SOL": "8njqnN9ZRQkvUFPNzjEU1mXMfPrC54zugmUeZoAYR659",
-    "TON": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
+    "BSC": "0xDD025846edc0Be0F5374817a49250d2e5890C73B",# 0xF560D0dEbAeFE59a6012037b338eab6F5ebfde66 # 0x29f3a673fbb4d1b311f92ad659c04087bfd510a039fade4d0853b301831a3d72 # 0.008722 BNB
+    "ETH": "0x310166751C19a2b1C37129a52ff8b433D8C6Df17", # 0xbb985902c457c623178efde482b2e08ac2f66106 # 0x60be1425015791c39fe17e2cc8b230734988e999cc9a9a696d5785854a119be2
+    "SOL": "ADaUMid9yfUytqMBgopwjb2DTLSokTSzL1zt6iGPaS49",# JD38n7ynKYcgPpF7k1BhXEeREu1KqptU93fVGy3S624k # 33bkeyDdtous4izFwhWWPFQvhVPERDd4Y1t6PN4HrbwthY1MGgBEwwcFVSox9bdENww5Z6R91mwaMCSHoLruij5k # 0.00004 sol   
+    #"TON": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"
 }
 
-SUBSCRIPTION_PLANS = [
+SUBSCRIPTION_PLANS_GROUP = [
+    {"duration": 1, "price": 500, "label": "1 Month", "discount": 0},
+    {"duration": 3, "price": 1200, "label": "3 Months", "discount": 20},
+    {"duration": 12, "price": 5000, "label": "1 Year", "discount": 30}
+]
+
+SUBSCRIPTION_PLANS_USER = [
     {"duration": 1, "price": 50, "label": "1 Month", "discount": 0},
     {"duration": 3, "price": 120, "label": "3 Months", "discount": 20},
     {"duration": 12, "price": 500, "label": "1 Year", "discount": 30}
@@ -49,19 +53,27 @@ RETRY_DELAY = 2
 CHAIN_CONFIGS = {
     "ETH": {
         "decimals": 18,
-        "explorer_api": "https://api.etherscan.io/api"
+        "explorer_api": "https://api.etherscan.io/api",
+        "api_kkey": "YXKSM8REVC4CJK93V6WIS26C1EFS9QKMMD",
+        "action": "eth_getTransactionByHash"
     },
     "BSC": {
         "decimals": 18,
-        "explorer_api": "https://api.bscscan.com/api"
+        "explorer_api": "https://api.bscscan.com/api",
+        "api_kkey": "U2AMQJ148JAU5CZC7M65GKQZXJCIFGDEYS",
+        "action": "eth_getTransactionByHash"
     },
     "SOL": {
         "decimals": 9,
-        "explorer_api": "https://api.solscan.io"
+        "explorer_api": "https://api.solscan.io",
+        "api_kkey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3MzQ1OTQzNzI1NTQsImVtYWlsIjoiYW5keWJsYWtlMTEwNkBnbWFpbC5jb20iLCJhY3Rpb24iOiJ0b2tlbi1hcGkiLCJhcGlWZXJzaW9uIjoidjIiLCJpYXQiOjE3MzQ1OTQzNzJ9.pgjWWAO_DPNIEvEKnpGvQPiWB__nBD4COcFSIGqNrxw",
+        "action": "sol_getTransactionByHash"
     },
     "TON": {
         "decimals": 18,
-        "explorer_api": "https://api.tonscan.com/api"
+        "explorer_api": "https://api.tonscan.com/api",
+        "api_kkey": "YXKSM8REVC4CJK93V6WIS26C1EFS9QKMMD",
+        "action": "ton_getTransactionByHash"
     }
 }
 
@@ -85,10 +97,14 @@ def retry_on_failure(max_retries: int = MAX_RETRIES, delay: int = RETRY_DELAY):
         return wrapper
     return decorator
 
-def get_duration_keyboard() -> List[List[InlineKeyboardButton]]:
+def get_duration_keyboard(chat_id: int) -> List[List[InlineKeyboardButton]]:
     """Generate enhanced keyboard for subscription duration selection with discounts."""
     keyboard = []
     row = []
+    if db.get_user(chat_id=chat_id).get("is_group") == True:
+        SUBSCRIPTION_PLANS= SUBSCRIPTION_PLANS_GROUP
+    else:
+        SUBSCRIPTION_PLANS= SUBSCRIPTION_PLANS_USER
     for i, plan in enumerate(SUBSCRIPTION_PLANS):
         display_text = f"{plan['label']} (${plan['price']}"
         if plan['discount'] > 0:
@@ -123,9 +139,9 @@ async def payment_start(update: Update, context: CallbackContext) -> None:
     chat_id = update.effective_chat.id
     logger.info(f"Starting payment process for chat_id: {chat_id}")
     print("🎈",context.user_data)
-    keyboard = get_duration_keyboard()
+    keyboard = get_duration_keyboard(chat_id)
     message = (
-        "🔥 *Premium Subscription Plans*\n\n"
+        f"🔥 {'👥Group' if db.get_user(chat_id=chat_id).get('is_group') else '👤User'} *Premium Subscription Plans*\n\n"
         "Choose your subscription duration:\n\n"
         "✨ *Benefits Include:*\n"
         "• Real-time market analysis and alerts\n"
@@ -135,7 +151,14 @@ async def payment_start(update: Update, context: CallbackContext) -> None:
         "• Custom portfolio tracking\n"
         "• Risk management tools\n\n"
         "🎉 *Special Offer:*\n"
-        "• Save up to 30% on longer subscriptions!"
+        "• Save up to 30% on longer subscriptions!\n\n"
+        "👥 *Group Plans Benefits:*\n"
+        "• Additional discounts for group subscriptions\n"
+        "• Shared access to premium features among group members\n"
+        "• Enhanced collaboration tools for group trading strategies\n\n"
+        "👤 *Individual Plans Benefits:*\n"
+        "• Personalized support tailored to your trading needs\n"
+        "• Exclusive insights and recommendations based on your preferences\n"
     )
 
     await context.bot.send_message(
@@ -150,7 +173,10 @@ async def payment_start(update: Update, context: CallbackContext) -> None:
 async def handle_duration_selection(update: Update, context: CallbackContext, duration: int, price: float) -> None:
     """Handle enhanced duration selection callback."""
     chat_id = update.effective_chat.id
-    
+    if db.get_user(chat_id=chat_id).get("is_group") == True:
+        SUBSCRIPTION_PLANS= SUBSCRIPTION_PLANS_GROUP
+    else:
+        SUBSCRIPTION_PLANS= SUBSCRIPTION_PLANS_USER
     selected_plan = next((plan for plan in SUBSCRIPTION_PLANS if plan['duration'] == duration), None)
     if selected_plan and selected_plan['discount'] > 0:
         original_price = price
@@ -205,16 +231,16 @@ async def handle_wallet_input(update: Update, context: CallbackContext, wallet_a
         expected_amount = crypto_amounts.get(chain)
         
 
-        # Get current expiry date from database
-        current_expiry = db_manager.get_expiry_date(chat_id)
+        # Get current expired date from database
+        current_expired = db.get_expired_date(chat_id)
         
-        # Calculate new expiry date
-        if current_expiry and current_expiry > datetime.now():
-            # If user has active subscription, add duration to current expiry
-            expiry_date = current_expiry + timedelta(days=duration * 30)
+        # Calculate new expired date
+        if current_expired and current_expired > datetime.now():
+            # If user has active subscription, add duration to current expired
+            expired_date = current_expired + timedelta(days=duration * 30)
         else:
             # If no active subscription or expired, calculate from now
-            expiry_date = datetime.now() + timedelta(days=duration * 30)
+            expired_date = datetime.now() + timedelta(days=duration * 30)
 
         context.user_data.update({
             "chat_id": chat_id,
@@ -222,16 +248,16 @@ async def handle_wallet_input(update: Update, context: CallbackContext, wallet_a
             "wallet_address": wallet_address,
             "expected_amount": price_usd,
             "current_state": "awaiting_payment",
-            "expiry_date": expiry_date
+            "expired_date": expired_date
         })
         print(f"chat_id: {chat_id}, wallet_address: {wallet_address}, chain: {chain}")
         # Update user's payment details in database with chain-specific wallet address
         if chain == "ETH":
-           db_manager.update_user_data(chat_id=chat_id, ETH_wallet_address=wallet_address, payment_method=chain)
+           db.update_user_data(chat_id=chat_id, ETH_wallet_address=wallet_address, payment_method=chain)
         elif chain == "BSC": 
-           db_manager.update_user_data(chat_id=chat_id, BTC_wallet_address=wallet_address, payment_method=chain)
+           db.update_user_data(chat_id=chat_id, BTC_wallet_address=wallet_address, payment_method=chain)
         elif chain == "SOL":
-           db_manager.update_user_data(chat_id=chat_id, USDT_wallet_address=wallet_address, payment_method=chain)
+           db.update_user_data(chat_id=chat_id, USDT_wallet_address=wallet_address, payment_method=chain)
         else:
             logger.error(f"Unsupported payment chain: {chain}")
             raise ValueError(f"Unsupported payment chain: {chain}")
@@ -247,7 +273,7 @@ async def handle_wallet_input(update: Update, context: CallbackContext, wallet_a
             f"your reward username: {username}\n\n"
             f"Your reward wallet:\n`{wallet_address}`\n\n"
             f"Duration: {duration} {'month' if duration == 1 else 'months'}\n"
-            f"Expires: {expiry_date.strftime('%Y-%m-%d')}\n\n"
+            f"Expires: {expired_date.strftime('%Y-%m-%d')}\n\n"
             "After sending payment, click 'I've Sent Payment' and provide the transaction hash."
         )
 
@@ -278,7 +304,7 @@ async def button_handler(update: Update, context: CallbackContext) -> None:
         await handle_payment_chain_selection(update, context, chain)
     
     elif query.data == "back":
-        keyboard = get_duration_keyboard()
+        keyboard = get_duration_keyboard(chat_id)
         await context.bot.send_message(
             chat_id=chat_id,
             text="Select your subscription duration:",
@@ -309,6 +335,14 @@ async def handle_payment_verification(update: Update, context: CallbackContext, 
         return
 
     expected_amount = context.user_data.get("expected_amount", 0)
+    if chain == "BSC":
+        expected_amount=0.008722 ############################################################################################################################################
+    elif chain == "ETH":
+        expected_amount=0.02618 ############################################################################################################################################
+    elif chain == "SOL":
+        expected_amount=0.00004 ############################################################################################################################################
+    else:
+        expected_amount=0
     payment_address = WALLET_ADDRESSES.get(chain)
     print(f"💰 Expected payment: {expected_amount} {chain} to {payment_address}")
     
@@ -330,22 +364,22 @@ async def handle_payment_verification(update: Update, context: CallbackContext, 
             print(f"😢 Transaction verification failed for chat_id {chat_id}, tx_hash {tx_hash}")
             return
 
-        expiry_date = context.user_data.get("expiry_date")
-        if not expiry_date:
-            await update.message.reply_text("❌ Invalid expiry date. Please start the payment process again.")
-            logger.error(f"Missing expiry date for chat_id {chat_id}")
+        expired_date = context.user_data.get("expired_date")
+        if not expired_date:
+            await update.message.reply_text("❌ Invalid expired date. Please start the payment process again.")
+            logger.error(f"Missing expired date for chat_id {chat_id}")
             return
-        print(expiry_date)    
+        print(expired_date)    
         total_amount = float(context.user_data.get("price", 0))  # Convert Decimal to float
         username = update.message.from_user.username
-        db_manager.update_user_data(
+        db.update_user_data(
             chat_id=chat_id,
             username=username,
             # is_paid=True,
             total_amount=total_amount,
             transaction_hash=tx_hash,
             last_paid_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            expired_time=expiry_date.strftime('%Y-%m-%d %H:%M:%S'),
+            expired_time=expired_date.strftime('%Y-%m-%d %H:%M:%S'),
             payment_method=chain,
             ETH_wallet_address=tx_details['from_address'] if chain == "ETH" else None,
             BTC_wallet_address=tx_details['from_address'] if chain == "BTC" else None,
@@ -361,7 +395,7 @@ async def handle_payment_verification(update: Update, context: CallbackContext, 
             f"• From: `{tx_details['from_address']}`\n"
             f"• To: `{tx_details['to_address']}`\n\n"
             "🎉 *Your Premium Subscription is Now Active!*\n"
-            f"• Expires: {expiry_date.strftime('%Y-%m-%d')}\n\n"
+            f"• Expires: {expired_date.strftime('%Y-%m-%d')}\n\n"
             "Enjoy your enhanced features and premium benefits!"
         )
         
@@ -402,7 +436,15 @@ async def verify_transaction(chain: str, tx_hash: str, expected_amount: float, p
             # Validate transaction details
             amount = tx_details.get("amount", 0)
             to_address = tx_details.get("to_address", "").lower()
-            expected_amount=0.02618 
+            if chain == "BSC":
+                expected_amount=0.008722 ############################################################################################################################################
+            elif chain == "ETH":
+                expected_amount=0.02618 ############################################################################################################################################
+            elif chain == "SOL":
+                expected_amount=0.00004 ############################################################################################################################################
+            else:
+                expected_amount=0
+            
             expected_address = payment_address.lower()
             # print(f"🔍 Validating transaction - Amount: {amount}, Expected: {expected_amount}")
        
@@ -460,13 +502,13 @@ async def verify_evm_transaction(session: aiohttp.ClientSession, chain: str, tx_
         print(f"😱 Missing configuration for chain: {chain}")
         return None
 
-    api_key = "YXKSM8REVC4CJK93V6WIS26C1EFS9QKMMD"  # Should be stored securely
+    api_key = config["api_kkey"]  # Should be stored securely
     api_url = config["explorer_api"]
     # print(f"🚀 Starting EVM transaction verification for {chain}")
-    
+    print("tx_hash-------",tx_hash)   
     params = {
         "module": "proxy",
-        "action": "eth_getTransactionByHash",
+        "action": config["action"],
         "txhash": tx_hash,
         "apikey": api_key
     }

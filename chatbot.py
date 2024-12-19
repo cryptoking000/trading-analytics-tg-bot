@@ -15,7 +15,7 @@ host = mongo_uri
 port = 27017
 
 # Specify the required fields using dot notation
-field_names = ["token_contract_data(0)"]
+field_names = ["all_data","token_contracts"]
 reader = SimpleMongoReader(host, port)
 
 documents = reader.load_data(

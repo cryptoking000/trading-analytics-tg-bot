@@ -4,11 +4,11 @@ from telegram import Bot, InputMediaPhoto
 from math_function import calculate_age, format_number
 from datetime import datetime
 from database_function import db
-def get_token_info(chain,token):  
-    url = f"https://api.coingecko.com/api/v3/coins/{chain}/contract/{token}"
-    response = requests.get(url)
-    data = response.json()
-    return data
+# def get_token_info(chain,token):  
+#     url = f"https://api.coingecko.com/api/v3/coins/{chain}/contract/{token}"
+#     response = requests.get(url)
+#     data = response.json()
+#     return data
 
 # def get_ath(token):
 #     BitQuery_url = "https://streaming.bitquery.io/eap"

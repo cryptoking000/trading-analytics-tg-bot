@@ -25,7 +25,7 @@ with open('channel.json', 'r') as file:
 # channel_username = 'devsellinglounge'
 i = 0 #message count
 k = 0 #channel count
-days = 10 #days to search
+days = 200 #days to search
 offset = datetime.now() - timedelta(days=days)#offset date
 
 # Start number for cycle

@@ -45,12 +45,12 @@ async def send_dm():
                 
             is_paid = user.get('is_paid', False)
             username = user.get('username', 'User')
-
+            ai_insight_text = await ai_insight()
             if chat_id not in processed_chat_ids:
                 message = (
                     f"Hello {username}!\n\n"
                     f"{' Thank you for being our premium member!' if is_paid else '💫 Upgrade to premium for more features!'}\n"
-                    f"{f'{ai_insight()}' if is_paid else ''}"
+                    f"{f'{ai_insight_text}' if is_paid else ''}"
                     f"Use /help to see available commands."
                 )
                 

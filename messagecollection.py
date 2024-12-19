@@ -25,11 +25,11 @@ with open('channel.json', 'r') as file:
 # channel_username = 'devsellinglounge'
 i = 0 #message count
 k = 0 #channel count
-days = 200 #days to search
+days = 10 #days to search
 offset = datetime.now() - timedelta(days=days)#offset date
 
 # Start number for cycle
-start_number = 5  # You can set this to the desired starting index
+start_number = 200  # You can set this to the desired starting index
 
 def extract_token_contracts(message):
     if message:

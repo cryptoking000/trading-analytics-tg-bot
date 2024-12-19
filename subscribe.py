@@ -11,7 +11,7 @@ from decimal import Decimal
 import asyncio
 from functools import wraps
 import json
-
+import os
 # Setup logging with file only
 logging.basicConfig(
     level=logging.INFO,
@@ -54,25 +54,25 @@ CHAIN_CONFIGS = {
     "ETH": {
         "decimals": 18,
         "explorer_api": "https://api.etherscan.io/api",
-        "api_kkey": "YXKSM8REVC4CJK93V6WIS26C1EFS9QKMMD",
+        "api_kkey": os.getenv("ETHERSCAN_API_KEY"),
         "action": "eth_getTransactionByHash"
     },
     "BSC": {
         "decimals": 18,
         "explorer_api": "https://api.bscscan.com/api",
-        "api_kkey": "U2AMQJ148JAU5CZC7M65GKQZXJCIFGDEYS",
+        "api_kkey": os.getenv("BSCSCAN_API_KEY"),
         "action": "eth_getTransactionByHash"
     },
     "SOL": {
         "decimals": 9,
         "explorer_api": "https://api.solscan.io",
-        "api_kkey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdGVkQXQiOjE3MzQ1OTQzNzI1NTQsImVtYWlsIjoiYW5keWJsYWtlMTEwNkBnbWFpbC5jb20iLCJhY3Rpb24iOiJ0b2tlbi1hcGkiLCJhcGlWZXJzaW9uIjoidjIiLCJpYXQiOjE3MzQ1OTQzNzJ9.pgjWWAO_DPNIEvEKnpGvQPiWB__nBD4COcFSIGqNrxw",
+        "api_kkey": os.getenv("SOLSCAN_API_KEY"),
         "action": "sol_getTransactionByHash"
     },
     "TON": {
         "decimals": 18,
         "explorer_api": "https://api.tonscan.com/api",
-        "api_kkey": "YXKSM8REVC4CJK93V6WIS26C1EFS9QKMMD",
+        "api_kkey": os.getenv("TONSCAN_API_KEY"),
         "action": "ton_getTransactionByHash"
     }
 }
@@ -274,7 +274,7 @@ async def handle_wallet_input(update: Update, context: CallbackContext, wallet_a
             f"Your reward wallet:\n`{wallet_address}`\n\n"
             f"Duration: {duration} {'month' if duration == 1 else 'months'}\n"
             f"Expires: {expired_date.strftime('%Y-%m-%d')}\n\n"
-            "After sending payment, click 'I've Sent Payment' and provide the transaction hash."
+            "please input your transaction hash and wait for verification just a moment"
         )
 
         await update.message.reply_text(

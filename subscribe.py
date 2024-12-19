@@ -3,7 +3,6 @@ from telegram.ext import CallbackContext, ContextTypes
 
 from math_function import convert_usd_to_crypto
 import aiohttp
-import logging
 from database_function import db
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
@@ -12,15 +11,9 @@ import asyncio
 from functools import wraps
 import json
 import os
-# Setup logging with file only
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('subscription.log')
-    ]
-)
-logger = logging.getLogger(__name__)
+from dotenv import load_dotenv
+load_dotenv()
+
 
 
 # Enhanced Constants with more options
@@ -87,12 +80,12 @@ def retry_on_failure(max_retries: int = MAX_RETRIES, delay: int = RETRY_DELAY):
                     return await func(*args, **kwargs)
                 except Exception as e:
                     wait_time = delay * (2 ** attempt)  # Exponential backoff
-                    logger.error(f"Attempt {attempt + 1}/{max_retries} failed: {str(e)}")
-                    logger.info(f"Retrying in {wait_time} seconds...")
+                    print(f"Attempt {attempt + 1}/{max_retries} failed: {str(e)}")
+                    print(f"Retrying in {wait_time} seconds...")
                     if attempt < max_retries - 1:
                         await asyncio.sleep(wait_time)
                     else:
-                        logger.error("Max retries reached. Giving up.")
+                        print("Max retries reached. Giving up.")
             return False
         return wrapper
     return decorator
@@ -137,7 +130,7 @@ def get_payment_keyboard() -> List[List[InlineKeyboardButton]]:
 async def payment_start(update: Update, context: CallbackContext) -> None:
     """Initialize the enhanced subscription process."""
     chat_id = update.effective_chat.id
-    logger.info(f"Starting payment process for chat_id: {chat_id}")
+    print(f"Starting payment process for chat_id: {chat_id}")
     print("🎈",context.user_data)
     keyboard = get_duration_keyboard(chat_id)
     message = (
@@ -259,7 +252,7 @@ async def handle_wallet_input(update: Update, context: CallbackContext, wallet_a
         elif chain == "SOL":
            db.update_user_data(chat_id=chat_id, USDT_wallet_address=wallet_address, payment_method=chain)
         else:
-            logger.error(f"Unsupported payment chain: {chain}")
+            print(f"Unsupported payment chain: {chain}")
             raise ValueError(f"Unsupported payment chain: {chain}")
 
         keyboard = [        
@@ -284,7 +277,7 @@ async def handle_wallet_input(update: Update, context: CallbackContext, wallet_a
         )
 
     except Exception as e:
-        logger.error(f"Error processing wallet for chat_id {chat_id}: {str(e)}")
+        print(f"Error processing wallet for chat_id {chat_id}: {str(e)}")
         await update.message.reply_text("❌ Error processing wallet. Please try again.")
 
 async def button_handler(update: Update, context: CallbackContext) -> None:
@@ -367,7 +360,7 @@ async def handle_payment_verification(update: Update, context: CallbackContext, 
         expired_date = context.user_data.get("expired_date")
         if not expired_date:
             await update.message.reply_text("❌ Invalid expired date. Please start the payment process again.")
-            logger.error(f"Missing expired date for chat_id {chat_id}")
+            print(f"Missing expired date for chat_id {chat_id}")
             return
         print(expired_date)    
         total_amount = float(context.user_data.get("price", 0))  # Convert Decimal to float

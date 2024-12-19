@@ -1,8 +1,10 @@
 import sqlitecloud
 from typing import Optional, Dict, Any
 from datetime import datetime
-
-connection_string = 'sqlitecloud://cqxv3cfvhz.sqlite.cloud:8860/telegram-bot-database?apikey=9AK557xjOuWgMqol4itbtJiAEiCiR5uF9r8QI7OvvlI'
+import os
+from dotenv import load_dotenv
+load_dotenv()
+connection_string = os.getenv("DATABASE_URL")
 
 class UserDatabaseManager:
     """Database manager class for SQLite Cloud operations"""

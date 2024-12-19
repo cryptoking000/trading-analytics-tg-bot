@@ -1,7 +1,11 @@
 import requests
 import json
 from pymongo import MongoClient
-mongo_uri = "mongodb+srv://andyblake:crs19981106@messagescluster.ci599.mongodb.net/?retryWrites=true&w=majority&appName=MessagesCluster"
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+mongo_uri = os.getenv("MONGO_URI")
 mongo_client = MongoClient(mongo_uri)
 db = mongo_client["telegram_bot_db"]
 token_list_collection = db["token_list_collection"]

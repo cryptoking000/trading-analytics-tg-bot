@@ -3,15 +3,14 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
+load_dotenv()
 
-# Load environment variables
-# load_dotenv()
-# MONGO_URI = os.getenv("MONGO_URI")
-MONGO_URI="mongodb+srv://andyblake:crs19981106@messagescluster.ci599.mongodb.net/?retryWrites=true&w=majority&appName=MessagesCluster"
+MONGO_URI = os.getenv("MONGO_URI")
 # Connect to MongoDB
 client = MongoClient(MONGO_URI)
 db = client["telegram_bot_db"]
 users_collection = db["users"]
+bot_token = os.getenv("bot_token")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle the /start command."""
@@ -45,7 +44,7 @@ async def show_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text=message)
 
 if __name__ == "__main__":
-    app = ApplicationBuilder().token("7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4").build()
+    app = ApplicationBuilder().token(bot_token).build()
 
     # Add command handlers
     app.add_handler(CommandHandler("start", start))

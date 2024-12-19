@@ -1,8 +1,12 @@
 from tavily import TavilyClient
 from datetime import datetime
 import asyncio
+import os
+from dotenv import load_dotenv
+load_dotenv()
+tavily_api_key = os.getenv("TAVILY_API_KEY")
 # Step 1. Instantiating your TavilyClient
-tavily_client = TavilyClient(api_key="key")
+tavily_client = TavilyClient(api_key=tavily_api_key)
 
 # Step 2. Executing a simple search query
 async def tavily_search(query):

@@ -5,9 +5,13 @@ from llama_index.llms.openai import OpenAI
 from chatbot_tavily import tavily_search
 from llama_index.core import Document
 from datetime import datetime
-llm = OpenAI(model="gpt-4o-mini", api_key="api-key")  # Use environment variable for API key
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
-mongo_uri = "mongodb+srv://andyblake:crs19981106@messagescluster.ci599.mongodb.net/?retryWrites=true&w=majority&appName=MessagesCluster"
+llm = OpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"))  # Use environment variable for API key
+
+mongo_uri = os.getenv("MONGO_URI")
 db_name = "telegram_bot_db"
 collection_name = "token_contracts"
 

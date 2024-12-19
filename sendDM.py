@@ -3,8 +3,10 @@ import telegram
 import requests
 import json
 from database_function import db
-
-TOKEN = "7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4"
+import os
+from dotenv import load_dotenv
+load_dotenv()
+TOKEN = os.getenv("bot_token")
  # Default chat_id if no recent messages
 
 URL_TELEGRAM_BASE = f'https://api.telegram.org/bot{TOKEN}'

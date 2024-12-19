@@ -15,7 +15,10 @@ import telegram
 from database_function import db
 from datetime import datetime
 import asyncio
-bot_token = '7904308436:AAFDqx7xPPi59E7LI4Pe9GfniR1D9NGMTz4'
+import os
+from dotenv import load_dotenv
+load_dotenv()
+bot_token = os.getenv("bot_token")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     context.user_data['subscribe_input_flag'] = False

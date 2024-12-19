@@ -5,11 +5,16 @@ import requests
 import json
 import telethon.errors.rpcerrorlist
 import time
-TELEGRAM_API_ID = '20774786'
-TELEGRAM_API_HASH = '9d57e018be785b18b245632f508302f2'
-phone_number = '+17344305801'  # Fixed: Added quotes to make it a string
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+TELEGRAM_API_ID = os.getenv("TELEGRAM_API_ID")
+TELEGRAM_API_HASH = os.getenv("TELEGRAM_API_HASH")  
+
+phone_number = os.getenv("phone_number")  # Fixed: Added quotes to make it a string
 session_name = 'telegram_messages_session'
-mongo_uri = "mongodb+srv://andyblake:crs19981106@messagescluster.ci599.mongodb.net/?retryWrites=true&w=majority&appName=MessagesCluster"
+mongo_uri = os.getenv("DATABASE_URL")
 mongo_client = MongoClient(mongo_uri)
 db = mongo_client["telegram_bot_db"]
 token_collection = db["token_contracts"]

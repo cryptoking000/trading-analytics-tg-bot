@@ -74,11 +74,18 @@ async def stop_dm_service():
     global dm_task
     if dm_task:
         dm_task.cancel()
+        try:
+            await dm_task
+        except asyncio.CancelledError:
+            pass
         dm_task = None
     print("DM service stopped successfully")
 async def all_token_data_update():
-    for token_contract in token_collection.find():
-        await token_data_update(token_contract)
+    cursor = token_collection.find()  # Get regular cursor
+    token_contracts = list(cursor)    # Convert cursor to list
+    print("💚", token_contracts)
+    for token_contract in token_contracts:
+        await asyncio.create_task.token_data_update(token_contract)
 async def token_data_update(token_contract):
     token_contract_data = get_token_contract_data(token_contract["token_contracts"])
     existing_entry = token_collection.find_one({"token_contracts": {"$in": [token_contract["token_contracts"]]}})
@@ -94,26 +101,29 @@ async def token_data_update(token_contract):
                 }
             }}
         )
-    print("Successfully updated token data")
+    print(f"Successfully updated token data🆓:{token_contract["token_contracts"]}")
 
 async def periodic_dm():
-    try:
-        
-        await all_token_data_update()
-        print("Token data updated")
-        await asyncio.sleep(10)
-        print("DM service starting...")
-        await send_dm()
-        await asyncio.sleep(200)  # Wait for 20 seconds before next execution
-        asyncio.create_task(periodic_dm())  # Schedule next execution
-    except asyncio.CancelledError:
-        print("DM service cancelled")
-    except Exception as e:
-        print(f"Error in DM service: {str(e)}")
-        await asyncio.sleep(50)  # Short sleep on error
-        asyncio.create_task(periodic_dm())  # Retry on error
+    while True:
+        try:
+            await all_token_data_update()
+            print("Token data updated")
+            await asyncio.sleep(10)
+            
+            print("DM service starting...")
+            await send_dm()
+            
+            await asyncio.sleep(200)
+            
+        except asyncio.CancelledError:
+            print("DM service cancelled")
+            break
+        except Exception as e:
+            print(f"Error in DM service: {str(e)}")
+            await asyncio.sleep(50)
 
 async def start_dm_service():
     global dm_task
     print("DM service starting...")
     dm_task = asyncio.create_task(periodic_dm())
+    await dm_task()

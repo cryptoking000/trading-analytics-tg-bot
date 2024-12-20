@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+import asyncio
 load_dotenv()
 connection_string = os.getenv("DATABASE_URL")
 
@@ -14,7 +15,6 @@ class UserDatabaseManager:
         print("🔗 Connecting to the database...")
         self._create_tables()
         print("✅ Database connection established.")
-
     def _create_tables(self):
         """Create necessary database tables if they don't exist"""
         try:
@@ -93,18 +93,18 @@ class UserDatabaseManager:
         except Exception as e:
             print(f"Error updating table columns: {e}")
 
-    def add_column(self, column_name: str, column_type: str) -> bool:
+    async def add_column(self, column_name: str, column_type: str) -> bool:
         """Add a new column to the user_data table"""
         try:
-            with sqlitecloud.connect(self.connection_string) as conn:
-                cursor = conn.cursor()
+            async with sqlitecloud.connect(self.connection_string) as conn:
+                cursor = await conn.cursor()
                 # Check if column exists
-                cursor.execute('PRAGMA table_info(user_data)')
-                existing_columns = {row[1] for row in cursor.fetchall()}
+                await cursor.execute('PRAGMA table_info(user_data)')
+                existing_columns = {row[1] for row in await cursor.fetchall()}
                 
                 if column_name not in existing_columns:
-                    cursor.execute(f'ALTER TABLE user_data ADD COLUMN {column_name} {column_type}')
-                    conn.commit()
+                    await cursor.execute(f'ALTER TABLE user_data ADD COLUMN {column_name} {column_type}')
+                    await conn.commit()
                     print(f"✅ Column '{column_name}' added successfully.")
                     return True
                 return False
@@ -112,13 +112,13 @@ class UserDatabaseManager:
             print(f"Error adding column: {e}")
             return False
 
-    def get_all_users(self) -> list:
+    async def get_all_users(self) -> list:
         """Get all users from database"""
         try:
-            with sqlitecloud.connect(self.connection_string) as conn:
-                cursor = conn.cursor()
-                cursor.execute('SELECT * FROM user_data')
-                results = cursor.fetchall()
+            async with sqlitecloud.connect(self.connection_string) as conn:
+                cursor = await conn.cursor()
+                await cursor.execute('SELECT * FROM user_data')
+                results = await cursor.fetchall()
                 return [
                     {
                         "id": row[0],
@@ -144,15 +144,15 @@ class UserDatabaseManager:
             print(f"Error getting all users: {e}")
             return []
         
-    def get_user(self, chat_id: int) -> Optional[Dict[str, Any]]:
+    async def get_user(self, chat_id: int) -> Optional[Dict[str, Any]]:
         """Get user data by chat_id"""
         try:
-            with sqlitecloud.connect(self.connection_string) as conn:
-                cursor = conn.cursor()
-                cursor.execute('''
+            async with sqlitecloud.connect(self.connection_string) as conn:
+                cursor = await conn.cursor()
+                await cursor.execute('''
                     SELECT * FROM user_data WHERE chat_id = ?
                 ''', (chat_id,))
-                result = cursor.fetchone()
+                result = await cursor.fetchone()
                 if result:
                     return {
                         "id": result[0],
@@ -177,7 +177,7 @@ class UserDatabaseManager:
             print(f"Error getting user: {e}")
             return None
 
-    def update_user_data(self, chat_id: int, **kwargs) -> bool:
+    async def update_user_data(self, chat_id: int, **kwargs) -> bool:
         """Update user data, always updating last_active and username if provided
         
         Args:
@@ -190,8 +190,8 @@ class UserDatabaseManager:
             bool: True if update successful, False otherwise
         """
         try:
-            with sqlitecloud.connect(self.connection_string) as conn:
-                cursor = conn.cursor()
+            async with sqlitecloud.connect(self.connection_string) as conn:
+                cursor = await conn.cursor()
 
                 # Always update last_active
                 current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -204,8 +204,8 @@ class UserDatabaseManager:
                 values.append(is_group)
                 
                 # Check if user exists
-                cursor.execute('SELECT expired_time FROM user_data WHERE chat_id = ?', (chat_id,))
-                existing_user = cursor.fetchone()
+                await cursor.execute('SELECT expired_time FROM user_data WHERE chat_id = ?', (chat_id,))
+                existing_user = await cursor.fetchone()
                 print(f"👤 Checking user {chat_id}: {'Exists' if existing_user else 'New user'} is_group: {is_group}")
                 if existing_user:
                     # Always update username if provided
@@ -245,7 +245,7 @@ class UserDatabaseManager:
                         WHERE chat_id = ?
                     '''
                     values.append(chat_id)
-                    cursor.execute(query, tuple(values))
+                    await cursor.execute(query, tuple(values))
                     print("🔄 Executing UPDATE query")
 
                 else:
@@ -271,10 +271,10 @@ class UserDatabaseManager:
                         INSERT INTO user_data ({', '.join(fields)})
                         VALUES ({', '.join(placeholders)})
                     '''
-                    cursor.execute(query, tuple(values))
+                    await cursor.execute(query, tuple(values))
                     print("➕ Executing INSERT query")
 
-                conn.commit()
+                await conn.commit()
                 print("✅ Database transaction committed successfully")
                 return True
 
@@ -283,20 +283,20 @@ class UserDatabaseManager:
             print(f"📋 Debug info - chat_id: {chat_id}, kwargs: {kwargs}")
             return False
 
-    def delete_user(self, chat_id: int) -> bool:
+    async def delete_user(self, chat_id: int) -> bool:
         """Delete a user from database"""
         try:
-            with sqlitecloud.connect(self.connection_string) as conn:
-                cursor = conn.cursor()
-                cursor.execute('DELETE FROM user_data WHERE chat_id = ?', (chat_id,))
-                conn.commit()
+            async with sqlitecloud.connect(self.connection_string) as conn:
+                cursor = await conn.cursor()
+                await cursor.execute('DELETE FROM user_data WHERE chat_id = ?', (chat_id,))
+                await conn.commit()
                 print(f"🗑️ User with chat_id {chat_id} deleted.")
                 return True
         except Exception as e:
             print(f"Error deleting user: {e}")
             return False
 
-    def get_expired_date(self, chat_id: int) -> Optional[datetime]:
+    async def get_expired_date(self, chat_id: int) -> Optional[datetime]:
         """Get the expired date for a user's subscription
         
         Args:
@@ -306,15 +306,15 @@ class UserDatabaseManager:
             Optional[datetime]: The expired date if found, None otherwise
         """
         try:
-            with sqlitecloud.connect(self.connection_string) as conn:
-                cursor = conn.cursor()
-                cursor.execute('''
+            async with sqlitecloud.connect(self.connection_string) as conn:
+                cursor = await conn.cursor()
+                await cursor.execute('''
                     SELECT expired_time 
                     FROM user_data 
                     WHERE chat_id = ?
                 ''', (chat_id,))
                 
-                result = cursor.fetchone()
+                result = await cursor.fetchone()
                 if result and result[0]:
                     return datetime.strptime(result[0], '%Y-%m-%d %H:%M:%S')
                 return None

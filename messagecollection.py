@@ -205,33 +205,47 @@ def message_collection(message):
             )
             print("Successfully updated token data")
 
+async def process_channel(client, channel_username, k, total_channels):
+    print("🎁🎁🎁🎁", k, "/", total_channels, channel_username)
+    try:
+        async for message in client.iter_messages(channel_username):
+            if message.date.date() >= offset.date():  # Only output messages from the previous day
+                await message_collection(message)
+            else:
+                break
+    except telethon.errors.rpcerrorlist.FloodWaitError as e:
+        print(f'Have to sleep', e.seconds, 'seconds')
+        await asyncio.sleep(e.seconds)
+    except telethon.errors.rpcerrorlist.ChannelPrivateError:
+        with open('channel.json', 'r+') as file:
+            channel_data = json.load(file)
+            channel_list = channel_data['channels']
+            if channel_username in channel_list:
+                channel_list.remove(channel_username)
+                file.seek(0)
+                json.dump(channel_data, file, indent=4)
+                file.truncate()
+        print(f"Access denied to channel: {channel_username}. It may be private or you lack permissions.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
 async def main():
     global k  # Declare k as global to modify it
-    with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
-        async for channel_username in channel_list[start_number:]:  # Start from the specified index
-            k += 1
-            print("🎁🎁🎁🎁", k, "/", len(channel_list), channel_username)
-            try:
-                async for message in client.iter_messages(channel_username):
-                    if message.date.date() >= offset.date():  # Only output messages from the previous day
-                        message_collection(message)
-                    else:
-                        break
-            except telethon.errors.rpcerrorlist.FloodWaitError as e:
-                print(f'Have to sleep', e.seconds, 'seconds')
-                time.sleep(e.seconds)
-            except telethon.errors.rpcerrorlist.ChannelPrivateError:
-                with open('channel.json', 'r+') as file:
-                    channel_data = json.load(file)
-                    channel_list = channel_data['channels']
-                    if channel_username in channel_list:
-                        channel_list.remove(channel_username)
-                        file.seek(0)
-                        json.dump(channel_data, file, indent=4)
-                        file.truncate()
-                print(f"Access denied to channel: {channel_username}. It may be private or you lack permissions.")
-            except Exception as e:
-                print(f"An error occurred: {e}")
+    async with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
+        channels = list(channel_list[start_number:])
+        total_channels = len(channels)
+        tasks = []
+        for i, channel in enumerate(channels, start=1):
+            k = i
+            task = asyncio.create_task(process_channel(client, channel, k, total_channels))
+            tasks.append(task)
+            if len(tasks) >= 10:  # Process 10 channels concurrently
+                await asyncio.gather(*tasks)
+                tasks = []
+        
+        if tasks:  # Process any remaining tasks
+            await asyncio.gather(*tasks)
+
 if __name__ == "__main__":
     asyncio.run(main())
 print("🎁", offset)

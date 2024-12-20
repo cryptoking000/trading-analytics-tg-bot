@@ -15,6 +15,7 @@ import os
 from dotenv import load_dotenv
 import logging
 import time
+from sendDM import start_dm_service, stop_dm_service
 load_dotenv()
 bot_token = '8006871239:AAH3-qkNrNj6SR3r7hC_Sp3WoLVOlbhg66Q'
 
@@ -77,6 +78,20 @@ async def payment_processing(update: Update):
     except Exception as e:
         logger.error(f"Error in payment processing: {e}")
 
+async def start_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    try:
+        await start_dm_service()
+    except Exception as e:
+        logger.error(f"Error starting DM service: {e}")
+        await update.message.reply_text("Failed to start DM service. Please try again later.")
+
+async def stop_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    try:
+        await stop_dm_service()
+    except Exception as e:
+        logger.error(f"Error stopping DM service: {e}")
+        await update.message.reply_text("Failed to stop DM service. Please try again later.")
+
 def main():
     try:
         application = ApplicationBuilder().token(bot_token).build()
@@ -85,21 +100,25 @@ def main():
         application.add_handler(CommandHandler("hello", hello))
         application.add_handler(CommandHandler("help", help))
         application.add_handler(CommandHandler("subscribe", start_payment))
-        
+        application.add_handler(CommandHandler("start_sendDm", start_sendDm))
+        application.add_handler(CommandHandler("stop_sendDm", stop_sendDm))
+
         print("👟👟Bot is running...")
-        logger.info("Bot is starting...")
         
-        # Start the bot with simplified polling
-        application.run_polling()
+        # Use run_polling without trying to manage the event loop manually
+        application.run_polling(allowed_updates=Update.ALL_TYPES)
         
     except Exception as e:
         logger.error(f"Critical error: {e}")
         print(f"An error occurred: {e}")
 
 if __name__ == '__main__':
+    # Create a new event loop and run the main function
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
-        asyncio.run(main())
+        loop.run_until_complete(main())
     except KeyboardInterrupt:
         print("Bot stopped by user")
-    except Exception as e:
-        print(f"Fatal error: {e}")
+    finally:
+        loop.close()

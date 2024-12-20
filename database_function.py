@@ -9,89 +9,89 @@ connection_string = os.getenv("DATABASE_URL")
 class UserDatabaseManager:
     """Database manager class for SQLite Cloud operations"""
     
-    # def __init__(self):
-    #     self.connection_string = connection_string
-    #     print("🔗 Connecting to the database...")
-    #     self._create_tables()
-    #     print("✅ Database connection established.")
+    def __init__(self):
+        self.connection_string = connection_string
+        print("🔗 Connecting to the database...")
+        self._create_tables()
+        print("✅ Database connection established.")
 
-    # def _create_tables(self):
-    #     """Create necessary database tables if they don't exist"""
-    #     try:
-    #         with sqlitecloud.connect(self.connection_string) as conn:
-    #             cursor = conn.cursor()
-    #             # First check if table exists
-    #             cursor.execute('''
-    #                 SELECT name FROM sqlite_master 
-    #                 WHERE type='table' AND name='user_data'
-    #             ''')
-    #             table_exists = cursor.fetchone() is not None
+    def _create_tables(self):
+        """Create necessary database tables if they don't exist"""
+        try:
+            with sqlitecloud.connect(self.connection_string) as conn:
+                cursor = conn.cursor()
+                # First check if table exists
+                cursor.execute('''
+                    SELECT name FROM sqlite_master 
+                    WHERE type='table' AND name='user_data'
+                ''')
+                table_exists = cursor.fetchone() is not None
 
-    #             if not table_exists:
-    #                 # Create table if it doesn't exist
-    #                 cursor.execute('''
-    #                     CREATE TABLE user_data (
-    #                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-    #                         chat_id INTEGER UNIQUE,
-    #                         is_group BOOLEAN DEFAULT FALSE,
-    #                         username TEXT,
-    #                         registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    #                         last_active TIMESTAMP,
-    #                         is_paid BOOLEAN DEFAULT FALSE,
-    #                         expired_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    #                         total_paid_budget INTEGER DEFAULT 0,
-    #                         last_paid_date TIMESTAMP,
-    #                         transaction_hash TEXT,
-    #                         ETH_wallet_address TEXT,
-    #                         BTC_wallet_address TEXT,
-    #                         USDT_wallet_address TEXT,
-    #                         payment_method TEXT,
-    #                         total_amount INTEGER DEFAULT 0  
-    #                     )
-    #                 ''')
-    #                 print("🆕 New table 'user_data' created.")
-    #             else:
-    #                 self._update_table_columns(cursor)
+                if not table_exists:
+                    # Create table if it doesn't exist
+                    cursor.execute('''
+                        CREATE TABLE user_data (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            chat_id INTEGER UNIQUE,
+                            is_group BOOLEAN DEFAULT FALSE,
+                            username TEXT,
+                            registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            last_active TIMESTAMP,
+                            is_paid BOOLEAN DEFAULT FALSE,
+                            expired_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            total_paid_budget INTEGER DEFAULT 0,
+                            last_paid_date TIMESTAMP,
+                            transaction_hash TEXT,
+                            ETH_wallet_address TEXT,
+                            BTC_wallet_address TEXT,
+                            USDT_wallet_address TEXT,
+                            payment_method TEXT,
+                            total_amount INTEGER DEFAULT 0  
+                        )
+                    ''')
+                    print("🆕 New table 'user_data' created.")
+                else:
+                    self._update_table_columns(cursor)
                 
-    #             conn.commit()
-    #     except Exception as e:
-    #         print(f"Error creating/updating tables: {e}")
+                conn.commit()
+        except Exception as e:
+            print(f"Error creating/updating tables: {e}")
 
-    # def _update_table_columns(self, cursor):
-    #     """Update table schema if new columns need to be added"""
-    #     try:
-    #         # Get existing columns
-    #         cursor.execute('PRAGMA table_info(user_data)')
-    #         existing_columns = {row[1] for row in cursor.fetchall()}
+    def _update_table_columns(self, cursor):
+        """Update table schema if new columns need to be added"""
+        try:
+            # Get existing columns
+            cursor.execute('PRAGMA table_info(user_data)')
+            existing_columns = {row[1] for row in cursor.fetchall()}
 
-    #         # Define expected columns with their types
-    #         expected_columns = {
-    #             'chat_id': 'INTEGER UNIQUE',
-    #             'is_group': 'BOOLEAN DEFAULT FALSE',
-    #             'username': 'TEXT',
-    #             'registration_date': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
-    #             'last_active': 'TIMESTAMP',
-    #             'is_paid': 'BOOLEAN DEFAULT FALSE',
-    #             'expired_time': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
-    #             'total_paid_budget': 'INTEGER DEFAULT 0',
-    #             'last_paid_date': 'TIMESTAMP',
-    #             'transaction_hash': 'TEXT',
-    #             'ETH_wallet_address': 'TEXT',
-    #             'BTC_wallet_address': 'TEXT',
-    #             'USDT_wallet_address': 'TEXT',
-    #             'payment_method': 'TEXT',
-    #             'total_amount': 'INTEGER DEFAULT 0'  # Fixed default value for total_amount
-    #         }
+            # Define expected columns with their types
+            expected_columns = {
+                'chat_id': 'INTEGER UNIQUE',
+                'is_group': 'BOOLEAN DEFAULT FALSE',
+                'username': 'TEXT',
+                'registration_date': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+                'last_active': 'TIMESTAMP',
+                'is_paid': 'BOOLEAN DEFAULT FALSE',
+                'expired_time': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+                'total_paid_budget': 'INTEGER DEFAULT 0',
+                'last_paid_date': 'TIMESTAMP',
+                'transaction_hash': 'TEXT',
+                'ETH_wallet_address': 'TEXT',
+                'BTC_wallet_address': 'TEXT',
+                'USDT_wallet_address': 'TEXT',
+                'payment_method': 'TEXT',
+                'total_amount': 'INTEGER DEFAULT 0'  # Fixed default value for total_amount
+            }
 
-    #         # Add missing columns
-    #         for column_name, column_type in expected_columns.items():
-    #             if column_name not in existing_columns:
-    #                 alter_query = f'ALTER TABLE user_data ADD COLUMN {column_name} {column_type}'
-    #                 cursor.execute(alter_query)
-    #                 print(f"Added new column: {column_name}")
+            # Add missing columns
+            for column_name, column_type in expected_columns.items():
+                if column_name not in existing_columns:
+                    alter_query = f'ALTER TABLE user_data ADD COLUMN {column_name} {column_type}'
+                    cursor.execute(alter_query)
+                    print(f"Added new column: {column_name}")
 
-    #     except Exception as e:
-    #         print(f"Error updating table columns: {e}")
+        except Exception as e:
+            print(f"Error updating table columns: {e}")
 
     def add_column(self, column_name: str, column_type: str) -> bool:
         """Add a new column to the user_data table"""

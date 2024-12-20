@@ -120,25 +120,32 @@ async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         logger.error(f"Error in payment process: {e}")
         await update.message.reply_text("Payment process failed. Please try again later.")
 
-def main():
+async def setup_handlers(application):
+    handlers = [
+        CommandHandler("hello", hello),
+        CommandHandler("start", start),
+        CommandHandler("help", help),
+        CommandHandler("subscribe", start_payment),
+        CommandHandler("startdm", start_sendDm),
+        CommandHandler("stopdm", stop_sendDm),
+        CallbackQueryHandler(button_handler),
+        MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler)
+    ]
+    
+    await asyncio.gather(*[application.add_handler(handler) for handler in handlers])
+
+async def main():
     try:
         application = ApplicationBuilder().token(bot_token).build()
 
-        # Add handlers
-        application.add_handler(CommandHandler("hello", hello))
-        application.add_handler(CommandHandler("start", start))
-        application.add_handler(CommandHandler("help", help))
-        application.add_handler(CommandHandler("subscribe", start_payment))
-        application.add_handler(CommandHandler("startdm", start_sendDm))
-        application.add_handler(CommandHandler("stopdm", stop_sendDm))
-        application.add_handler(CallbackQueryHandler(button_handler))
-        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler))
+        # Add handlers concurrently
+        await setup_handlers(application)
         
         print("👟👟Bot is running...")
         logger.info("Bot is starting...")
         
         # Start the bot with simplified polling
-        application.run_polling()
+        await application.run_polling()
         
     except Exception as e:
         logger.error(f"Critical error: {e}")

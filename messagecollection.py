@@ -152,7 +152,61 @@ def get_token_contract_data(token_contracts):
         "twitter_url": twitter_url
     }
     return token_data
-
+def message_collection(message):
+    token_contracts = extract_token_contracts(message.text)
+    if token_contracts:
+        i += 1    
+        print("🎁", i, message.date,"🎈",token_contracts)
+        message_dict = {
+            "token_contracts": token_contracts,
+            "last_mention_date": message.date,
+        }
+        
+        token_contract_data = get_token_contract_data(token_contracts)
+        existing_entry = token_collection.find_one({"token_contracts": {"$in": [message_dict["token_contracts"]]}})
+        
+        if not existing_entry:
+            print("🧨")
+            token_collection.insert_one({
+                **message_dict, 
+                "num_times_mentioned": 1,
+                "last_mention_date": message.date,
+                "all_data":{
+                "message_date(0)": message.date,
+                "num_times_mentioned(0)": 1,
+                "token_contract_data(0)": token_contract_data,
+                }
+                })
+        elif existing_entry["last_mention_date"].strftime("%Y-%m-%d %H:%M:%S") != message.date.strftime("%Y-%m-%d %H:%M:%S"):
+            print("🧨🧨")
+            print(existing_entry["last_mention_date"], message.date.strftime("%Y-%m-%d %H:%M:%S"))
+            print("⌚",datetime.now().hour)
+            num_times_mentioned = existing_entry["num_times_mentioned"] + 1
+            
+            order_token_contract_data = datetime.now().hour
+            token_collection.update_one(
+                {"_id": existing_entry["_id"]},
+                {"$set": {
+                    "num_times_mentioned": num_times_mentioned,  
+                    "last_mention_date": message.date,
+                    
+                }}
+            )
+            token_collection.update_one(
+                {"_id": existing_entry["_id"]},
+                {"$set": {
+                    "all_data": {
+                        **existing_entry["all_data"],  # Preserve previous data
+                        f"message_date({order_token_contract_data})": message.date,
+                        f"num_times_mentioned({order_token_contract_data})": num_times_mentioned,  
+                        f"token_contract_data({order_token_contract_data})": token_contract_data,
+                        
+                    }
+                }}
+            )
+            print("Successfully updated token data")
+    else:
+        None
 with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
     for channel_username in channel_list[start_number:]:  # Start from the specified index
        
@@ -161,60 +215,8 @@ with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
         try:
             for message in client.iter_messages(channel_username):
                 if message.date.date() >= offset.date():  # Only output messages from the previous day
-                    token_contracts = extract_token_contracts(message.text)
-                    if token_contracts:
-                        i += 1    
-                        print("🎁", i, message.date,"🎈",token_contracts)
-                        message_dict = {
-                            "token_contracts": token_contracts,
-                            "last_mention_date": message.date,
-                        }
-                        
-                        token_contract_data = get_token_contract_data(token_contracts)
-                        existing_entry = token_collection.find_one({"token_contracts": {"$in": [message_dict["token_contracts"]]}})
-                        
-                        if not existing_entry:
-                            print("🧨")
-                            token_collection.insert_one({
-                                **message_dict, 
-                                "num_times_mentioned": 1,
-                                "last_mention_date": message.date,
-                                "all_data":{
-                                "message_date(0)": message.date,
-                                "num_times_mentioned(0)": 1,
-                                "token_contract_data(0)": token_contract_data,
-                                }
-                                })
-                        elif existing_entry["last_mention_date"].strftime("%Y-%m-%d %H:%M:%S") != message.date.strftime("%Y-%m-%d %H:%M:%S"):
-                            print("🧨🧨")
-                            print(existing_entry["last_mention_date"], message.date.strftime("%Y-%m-%d %H:%M:%S"))
-                            print("⌚",datetime.now().hour)
-                            num_times_mentioned = existing_entry["num_times_mentioned"] + 1
-                            
-                            order_token_contract_data = datetime.now().hour
-                            token_collection.update_one(
-                                {"_id": existing_entry["_id"]},
-                                {"$set": {
-                                    "num_times_mentioned": num_times_mentioned,  
-                                    "last_mention_date": message.date,
-                                  
-                                }}
-                            )
-                            token_collection.update_one(
-                                {"_id": existing_entry["_id"]},
-                                {"$set": {
-                                    "all_data": {
-                                        **existing_entry["all_data"],  # Preserve previous data
-                                        f"message_date({order_token_contract_data})": message.date,
-                                        f"num_times_mentioned({order_token_contract_data})": num_times_mentioned,  
-                                        f"token_contract_data({order_token_contract_data})": token_contract_data,
-                                       
-                                    }
-                                }}
-                            )
-                            print("Successfully updated token data")
-                    else:
-                        None
+                   
+                    message_collection(message)
                 else:
                     break
         except telethon.errors.rpcerrorlist.FloodWaitError as e:

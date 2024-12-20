@@ -208,11 +208,11 @@ def message_collection(message):
 async def main():
     global k  # Declare k as global to modify it
     with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
-        for channel_username in channel_list[start_number:]:  # Start from the specified index
+        async for channel_username in channel_list[start_number:]:  # Start from the specified index
             k += 1
             print("🎁🎁🎁🎁", k, "/", len(channel_list), channel_username)
             try:
-                for message in client.iter_messages(channel_username):
+                async for message in client.iter_messages(channel_username):
                     if message.date.date() >= offset.date():  # Only output messages from the previous day
                         message_collection(message)
                     else:

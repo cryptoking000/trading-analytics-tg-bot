@@ -10,6 +10,7 @@ from chatbot_tavily import tavily_search
 from telegram.constants import ChatType, ParseMode
 # from telegram import ChatType
 from messagecollection import message_collection
+import asyncio
 
 def get_token_keyboard(chain_id, token_address):
     keyboard = [
@@ -39,7 +40,7 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
         hex_data = ""
         print("🎄🎄input_message", input_message)
         
-        for word in input_message.split():
+        async for word in input_message.split():
             if len(word) >= 40 and word.isalnum(): 
                 hex_data = word
                 await update.message.reply_text(f'Token address received: {word}')  # Reply with the token address

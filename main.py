@@ -27,32 +27,39 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         context.user_data['subscribe_input_flag'] = False
         last_active = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        await asyncio.create_task(
-            db.update_user_data(
-                chat_id=update.message.chat_id,
-                username=update.message.from_user.username,
-                last_active=last_active
-            )
+        
+        # Update user data directly without create_task since update_user_data is already async
+        db.update_user_data(
+            chat_id=update.message.chat_id,
+            username=update.message.from_user.username,
+            last_active=last_active
         )
-        user_data = await asyncio.create_task(db.get_user(update.message.chat_id))
-        expired_time = user_data.get("expired_time")
+        
+        # Get user data directly without create_task
+        user_data = db.get_user(update.message.chat_id)
+        expired_time = user_data.get("expired_time") if user_data else None
+        
         if expired_time is None:
             expired_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        is_active = expired_time > current_time
         
         message = (
             "🎉 *Welcome to CryptoAdvisor Bot!*\n\n"
             "I'm here to help you track and analyze cryptocurrencies.\n"
             "I can help you find the best tokens to invest in.\n"
-            f"{'Your subscription is active' if expired_time > datetime.now().strftime('%Y-%m-%d %H:%M:%S') else 'Your subscription is expired'}\n"
-            f"your expired time is {expired_time}\n"
+            f"{'Your subscription is active' if is_active else 'Your subscription is expired'}\n"
+            f"Your expired time is {expired_time}\n"
             "Run /help to see all available commands."
         )
+        
         await update.message.reply_text(text=message, parse_mode=ParseMode.MARKDOWN)
+        
     except Exception as e:
         logger.error(f"Error in start command: {e}")
         await update.message.reply_text("An error occurred. Please try again later.")

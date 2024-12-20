@@ -38,7 +38,7 @@ async def show_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle a command to show all registered users."""
     all_users = users_collection.find()
     message = "👥 Registered Users:\n"
-    for user in all_users:
+    async for user in all_users:
         message += f"- {user['first_name']} (ID: {user['chat_id']})\n"
     
     await context.bot.send_message(chat_id=update.effective_chat.id, text=message)

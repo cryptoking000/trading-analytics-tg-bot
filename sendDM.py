@@ -101,7 +101,7 @@ async def token_data_update(token_contract):
                 }
             }}
         )
-    print(f"Successfully updated token data🆓:{token_contract["token_contracts"]}")
+    print(f"Successfully updated token data🆓")
 
 async def periodic_dm():
     while True:

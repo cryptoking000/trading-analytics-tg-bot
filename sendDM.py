@@ -85,7 +85,7 @@ async def all_token_data_update():
     token_contracts = list(cursor)    # Convert cursor to list
     print("💚", token_contracts)
     for token_contract in token_contracts:
-        await asyncio.create_task.token_data_update(token_contract)
+        await token_data_update(token_contract)
 async def token_data_update(token_contract):
     token_contract_data = get_token_contract_data(token_contract["token_contracts"])
     existing_entry = token_collection.find_one({"token_contracts": {"$in": [token_contract["token_contracts"]]}})

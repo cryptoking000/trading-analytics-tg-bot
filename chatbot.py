@@ -20,16 +20,17 @@ port = 27017
 
 # Specify the required fields using dot notation
 field_names = ["all_data","token_contracts"]
-reader = SimpleMongoReader(host, port)
 
-documents = reader.load_data(
-    db_name, collection_name, field_names
-)
+
 
 
 async def chat_bot(input_message):
    
     try:
+        reader = SimpleMongoReader(host, port)
+        documents = reader.load_data(
+            db_name, collection_name, field_names
+        )
          
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
             You are a crypto advisor and expert researcher tasked with gathering information for a daily report.   Your current objective is to gather documents about : "https://dexscreener.com".\n

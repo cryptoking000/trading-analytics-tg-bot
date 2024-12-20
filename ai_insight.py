@@ -2,7 +2,7 @@ from llama_index.core import SummaryIndex
 from llama_index.readers.mongodb import SimpleMongoReader
 from IPython.display import Markdown, display
 from llama_index.llms.openai import OpenAI
-from chatbot_tavily import tavily_search
+# from chatbot_tavily import tavily_search
 from llama_index.core import Document
 from datetime import datetime
 import os

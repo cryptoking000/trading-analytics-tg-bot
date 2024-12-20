@@ -6,8 +6,8 @@ from apidata import fetch_trading_pair_data
 from datetime import datetime
 from database_function import db
 from chatbot import chat_bot
-from chatbot_tavily import tavily_search
-from telegram.constants import ChatType, ParseMode
+# from chatbot_tavily import tavily_search
+# from telegram.constants import ChatType, ParseMode
 # from telegram import ChatType
 from messagecollection import message_collection
 import asyncio

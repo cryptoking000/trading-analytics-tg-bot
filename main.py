@@ -70,28 +70,33 @@ async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await payment_start(update=update, context=context)
 
 async def main():
-    # Load bot token from environment variable or config file in production
-    application = ApplicationBuilder().token(bot_token).build()
-
-    # Add handlers
-    application.add_handler(CommandHandler("hello", hello))
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help))
-    application.add_handler(CommandHandler("subscribe", start_payment))
-    application.add_handler(CommandHandler("start_sendDm", start_sendDm))
-    application.add_handler(CommandHandler("stop_sendDm", stop_sendDm))
-    
-    application.add_handler(CallbackQueryHandler(button_handler))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler))
-    
-    print("👟👟Bot is running...")
-    
+    application = None
     try:
-        application.run_polling(drop_pending_updates=True)
+        # Load bot token from environment variable or config file in production
+        application = ApplicationBuilder().token(bot_token).build()
+
+        # Add handlers
+        application.add_handler(CommandHandler("hello", hello))
+        application.add_handler(CommandHandler("start", start))
+        application.add_handler(CommandHandler("help", help))
+        application.add_handler(CommandHandler("subscribe", start_payment))
+        application.add_handler(CommandHandler("start_sendDm", start_sendDm))
+        application.add_handler(CommandHandler("stop_sendDm", stop_sendDm))
+        
+        application.add_handler(CallbackQueryHandler(button_handler))
+        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler))
+        
+        print("🚀🚀🚀Bot is running...")
+        
+        await application.initialize()
+        await application.run_polling(drop_pending_updates=True)
     except telegram.error.TimedOut:
         print("Connection timed out. Please check your internet connection and try again.")
     except Exception as e:
         print(f"An error occurred: {e}")
-    
+    finally:
+        if application:
+            await application.shutdown()
+
 if __name__ == '__main__':
     asyncio.run(main())

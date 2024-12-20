@@ -44,7 +44,7 @@ async def send_dm():
             print("No users found in database.")
             return
 
-        async for user in users:
+        for user in users:
             chat_id = user.get('chat_id')
             if not chat_id:
                 print(f"Invalid chat_id for user: {user}")
@@ -77,7 +77,7 @@ async def stop_dm_service():
         dm_task = None
     print("DM service stopped successfully")
 async def all_token_data_update():
-    async for token_contract in token_collection.find():
+    for token_contract in token_collection.find():
         await token_data_update(token_contract)
 async def token_data_update(token_contract):
     token_contract_data = get_token_contract_data(token_contract["token_contracts"])
@@ -98,7 +98,7 @@ async def token_data_update(token_contract):
 
 async def periodic_dm():
     try:
-        print("Token data updating...")
+        
         await all_token_data_update()
         print("Token data updated")
         await asyncio.sleep(10)

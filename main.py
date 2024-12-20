@@ -110,43 +110,34 @@ async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         logger.error(f"Error in payment process: {e}")
         await update.message.reply_text("Payment process failed. Please try again later.")
 
-async def main():
+def main():
     try:
-        # Initialize application with error handling
         application = ApplicationBuilder().token(bot_token).build()
+
+        # Add handlers
+        application.add_handler(CommandHandler("hello", hello))
+        application.add_handler(CommandHandler("start", start))
+        application.add_handler(CommandHandler("help", help))
+        application.add_handler(CommandHandler("subscribe", start_payment))
+        application.add_handler(CommandHandler("start_sendDm", start_sendDm))
+        application.add_handler(CommandHandler("stop_sendDm", stop_sendDm))
+        application.add_handler(CallbackQueryHandler(button_handler))
+        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler))
         
-        # Add handlers with concurrent processing capability
-        handlers = [
-            CommandHandler("hello", hello),
-            CommandHandler("start", start),
-            CommandHandler("help", help),
-            CommandHandler("subscribe", start_payment),
-            CommandHandler("start_sendDm", start_sendDm),
-            CommandHandler("stop_sendDm", stop_sendDm),
-            CallbackQueryHandler(button_handler),
-            MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler)
-        ]
-        
-        for handler in handlers:
-            application.add_handler(handler)
-        
-        logger.info("Bot is starting...")
         print("👟👟Bot is running...")
+        logger.info("Bot is starting...")
         
-        # Run the bot with proper shutdown handling
-        await application.initialize()
-        await application.start()
-        await application.run_polling(drop_pending_updates=True)
+        # Start the bot with simplified polling
+        application.run_polling()
         
-    except telegram.error.TimedOut:
-        logger.error("Connection timed out. Please check your internet connection.")
-        print("Connection timed out. Please check your internet connection and try again.")
     except Exception as e:
         logger.error(f"Critical error: {e}")
         print(f"An error occurred: {e}")
-    finally:
-        await application.stop()
-        await application.shutdown()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Bot stopped by user")
+    except Exception as e:
+        print(f"Fatal error: {e}")

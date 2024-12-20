@@ -77,24 +77,49 @@ async def stop_dm_service():
         dm_task = None
     print("DM service stopped successfully")
 async def all_token_data_update():
+    # Create a list to store all update tasks
+    update_tasks = []
+    
+    # Create tasks for each token contract
     for token_contract in token_collection.find():
-        await token_data_update(token_contract)
+        task = asyncio.create_task(token_data_update(token_contract))
+        update_tasks.append(task)
+    
+    # Wait for all tasks to complete
+    await asyncio.gather(*update_tasks)
+
 async def token_data_update(token_contract):
-    token_contract_data = get_token_contract_data(token_contract["token_contracts"])
-    existing_entry = token_collection.find_one({"token_contracts": {"$in": [token_contract["token_contracts"]]}})
-    order_token_contract_data = datetime.now().hour
-    token_collection.update_one(
+    try:
+        # Get token data asynchronously 
+        token_contract_data = await asyncio.to_thread(
+            get_token_contract_data,
+            token_contract["token_contracts"]
+        )
+        
+        # Find existing entry asynchronously
+        existing_entry = await asyncio.to_thread(
+            token_collection.find_one,
+            {"token_contracts": {"$in": [token_contract["token_contracts"]]}}
+        )
+        
+        order_token_contract_data = datetime.now().hour
+        
+        # Update database asynchronously
+        await asyncio.to_thread(
+            token_collection.update_one,
             {"_id": existing_entry["_id"]},
             {"$set": {
                 "all_data": {
                     **existing_entry["all_data"],  # Preserve previous data
                     f"message_date({order_token_contract_data})": datetime.now(),
-                    f"num_times_mentioned({order_token_contract_data})": existing_entry["num_times_mentioned"],  
+                    f"num_times_mentioned({order_token_contract_data})": existing_entry["num_times_mentioned"],
                     f"token_contract_data({order_token_contract_data})": token_contract_data,
                 }
             }}
         )
-    print("Successfully updated token data")
+        print("Successfully updated token data")
+    except Exception as e:
+        print(f"Error updating token data: {str(e)}")
 
 async def periodic_dm():
     try:

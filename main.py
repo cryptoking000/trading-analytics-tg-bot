@@ -32,22 +32,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         context.user_data['subscribe_input_flag'] = False
         last_active = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
-        # Update user data directly without create_task since update_user_data is already async
-        asyncio.run(db.update_user_data(
+        # Update user data
+        db.update_user_data(
             chat_id=update.message.chat_id,
             username=update.message.from_user.username,
             last_active=last_active
-        ))
+        )
         
-        # Get user data directly without create_task
-        user_data = asyncio.run(db.get_user(update.message.chat_id))
+        # Get user data
+        user_data = db.get_user(update.message.chat_id)
         expired_time = user_data.get("expired_time") if user_data else None
         
         if expired_time is None:
             expired_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             
-        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        is_active = expired_time > current_time
+        current_time = datetime.now()
+        expired_time_dt = datetime.strptime(expired_time, '%Y-%m-%d %H:%M:%S')
+        is_active = expired_time_dt > current_time
         
         message = (
             "🎉 *Welcome to CryptoAdvisor Bot!*\n\n"

@@ -6,7 +6,14 @@ from database_function import db
 import os
 from dotenv import load_dotenv
 from ai_insight import ai_insight
+from pymongo import MongoClient
+from datetime import datetime
+from messagecollection import get_token_contract_data
 load_dotenv()
+mongo_uri = os.getenv("MONGO_URI")
+mongo_client = MongoClient(mongo_uri)
+db = mongo_client["telegram_bot_db"]
+token_collection = db["token_contracts"]
 TOKEN = os.getenv("bot_token")
  # Default chat_id if no recent messages
 
@@ -69,11 +76,35 @@ async def stop_dm_service():
         dm_task.cancel()
         dm_task = None
     print("DM service stopped successfully")
+async def all_token_data_update():
+    for token_contract in token_collection.find():
+        await token_data_update(token_contract)
+async def token_data_update(token_contract):
+    token_contract_data = get_token_contract_data(token_contract["token_contracts"])
+    existing_entry = token_collection.find_one({"token_contracts": {"$in": [token_contract["token_contracts"]]}})
+    order_token_contract_data = datetime.now().hour
+    token_collection.update_one(
+            {"_id": existing_entry["_id"]},
+            {"$set": {
+                "all_data": {
+                    **existing_entry["all_data"],  # Preserve previous data
+                    f"message_date({order_token_contract_data})": datetime.now(),
+                    f"num_times_mentioned({order_token_contract_data})": existing_entry["num_times_mentioned"],  
+                    f"token_contract_data({order_token_contract_data})": token_contract_data,
+                }
+            }}
+        )
+    print("Successfully updated token data")
 
 async def periodic_dm():
     try:
+        print("Token data updating...")
+        await all_token_data_update()
+        print("Token data updated")
+        await asyncio.sleep(10)
+        print("DM service starting...")
         await send_dm()
-        await asyncio.sleep(20)  # Wait for 20 seconds before next execution
+        await asyncio.sleep(200)  # Wait for 20 seconds before next execution
         asyncio.create_task(periodic_dm())  # Schedule next execution
     except asyncio.CancelledError:
         print("DM service cancelled")

@@ -69,8 +69,15 @@ async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     context.user_data['subscribe_input_flag'] = True
     await payment_start(update=update, context=context)
 
-def main():
-    
+async def main():
+    await asyncio.gather(
+        start_payment(),
+        hello(),
+        start(),
+        help(),
+        start_sendDm(),
+        stop_sendDm()
+    )
     # Load bot token from environment variable or config file in production
     application = ApplicationBuilder().token(bot_token).build()
 

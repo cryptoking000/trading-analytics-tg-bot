@@ -2,6 +2,7 @@ from telethon.sync import TelegramClient
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 import requests
+import asyncio
 import json
 import telethon.errors.rpcerrorlist
 import time
@@ -22,22 +23,20 @@ with open('channel.json', 'r') as file:
     channel_data = json.load(file)
     channel_list = channel_data['channels']
 
-# channel_username = 'devsellinglounge'
-i = 0 #message count
-k = 0 #channel count
-days = 10 #days to search
-offset = datetime.now() - timedelta(days=days)#offset date
+i = 0  # message count
+k = 0  # channel count
+days = 10  # days to search
+offset = datetime.now() - timedelta(days=days)  # offset date
 
 # Start number for cycle
 start_number = 200  # You can set this to the desired starting index
 
 def extract_token_contracts(message):
     if message:
-        # Split the message into parts and initialize a list for valid token contracts
         for part in message.split():
             if len(part) >= 40 and part.isalnum():
                 return part
-        return None
+    return None
 
 def get_token_contract_data(token_contracts):
     api_searchurl = f"https://api.dexscreener.com/latest/dex/search?q={token_contracts}"
@@ -45,13 +44,12 @@ def get_token_contract_data(token_contracts):
     response.raise_for_status()
     data = response.json()
     pair_info = data.get('pairs', [])
-    # Check if pair_info is empty
     if not pair_info:
         print("No pairs found for the provided token contracts.")
-        return None  # Return None for each contract if no data is found
+        return None
     data = pair_info[0]
     print("Successfully retrieved pair data")
-    # Extract data with improved error handling
+
     def safe_get(obj, *keys, default="N/A"):
         try:
             current = obj
@@ -61,6 +59,7 @@ def get_token_contract_data(token_contracts):
         except (KeyError, TypeError):
             print(f"Failed to get value for keys {keys}")
             return default
+
     chain = safe_get(data, "chainId")
     dex_id = safe_get(data, "dexId")
     pairAddress = safe_get(data, "pairAddress")
@@ -152,7 +151,9 @@ def get_token_contract_data(token_contracts):
         "twitter_url": twitter_url
     }
     return token_data
+
 def message_collection(message):
+    global i  # Declare i as global to modify it
     token_contracts = extract_token_contracts(message.text)
     if token_contracts:
         i += 1    
@@ -171,16 +172,16 @@ def message_collection(message):
                 **message_dict, 
                 "num_times_mentioned": 1,
                 "last_mention_date": message.date,
-                "all_data":{
-                "message_date(0)": message.date,
-                "num_times_mentioned(0)": 1,
-                "token_contract_data(0)": token_contract_data,
+                "all_data": {
+                    "message_date(0)": message.date,
+                    "num_times_mentioned(0)": 1,
+                    "token_contract_data(0)": token_contract_data,
                 }
-                })
+            })
         elif existing_entry["last_mention_date"].strftime("%Y-%m-%d %H:%M:%S") != message.date.strftime("%Y-%m-%d %H:%M:%S"):
             print("🧨🧨")
             print(existing_entry["last_mention_date"], message.date.strftime("%Y-%m-%d %H:%M:%S"))
-            print("⌚",datetime.now().hour)
+            print("⌚", datetime.now().hour)
             num_times_mentioned = existing_entry["num_times_mentioned"] + 1
             
             order_token_contract_data = datetime.now().hour
@@ -189,7 +190,6 @@ def message_collection(message):
                 {"$set": {
                     "num_times_mentioned": num_times_mentioned,  
                     "last_mention_date": message.date,
-                    
                 }}
             )
             token_collection.update_one(
@@ -200,40 +200,39 @@ def message_collection(message):
                         f"message_date({order_token_contract_data})": message.date,
                         f"num_times_mentioned({order_token_contract_data})": num_times_mentioned,  
                         f"token_contract_data({order_token_contract_data})": token_contract_data,
-                        
                     }
                 }}
             )
             print("Successfully updated token data")
-    else:
-        None
-with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
-    for channel_username in channel_list[start_number:]:  # Start from the specified index
-       
-        k += 1
-        print("🎁🎁🎁🎁", k,"/",len(channel_list), channel_username)
-        try:
-            for message in client.iter_messages(channel_username):
-                if message.date.date() >= offset.date():  # Only output messages from the previous day
-                   
-                    message_collection(message)
-                else:
-                    break
-        except telethon.errors.rpcerrorlist.FloodWaitError as e:
-            print(f'Have to sleep', e.seconds, 'seconds')
-            time.sleep(e.seconds)
-        except telethon.errors.rpcerrorlist.ChannelPrivateError:
-            with open('channel.json', 'r+') as file:
-                channel_data = json.load(file)
-                channel_list = channel_data['channels']
-                if channel_username in channel_list:
-                    channel_list.remove(channel_username)
-                    file.seek(0)
-                    json.dump(channel_data, file, indent=4)
-                    file.truncate()
-            print(f"Access denied to channel: {channel_username}. It may be private or you lack permissions.")
-        except Exception as e:
-            print(f"An error occurred: {e}")
 
+async def main():
+    global k  # Declare k as global to modify it
+    with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
+        for channel_username in channel_list[start_number:]:  # Start from the specified index
+            k += 1
+            print("🎁🎁🎁🎁", k, "/", len(channel_list), channel_username)
+            try:
+                for message in client.iter_messages(channel_username):
+                    if message.date.date() >= offset.date():  # Only output messages from the previous day
+                        message_collection(message)
+                    else:
+                        break
+            except telethon.errors.rpcerrorlist.FloodWaitError as e:
+                print(f'Have to sleep', e.seconds, 'seconds')
+                time.sleep(e.seconds)
+            except telethon.errors.rpcerrorlist.ChannelPrivateError:
+                with open('channel.json', 'r+') as file:
+                    channel_data = json.load(file)
+                    channel_list = channel_data['channels']
+                    if channel_username in channel_list:
+                        channel_list.remove(channel_username)
+                        file.seek(0)
+                        json.dump(channel_data, file, indent=4)
+                        file.truncate()
+                print(f"Access denied to channel: {channel_username}. It may be private or you lack permissions.")
+            except Exception as e:
+                print(f"An error occurred: {e}")
+if __name__ == "__main__":
+    asyncio.run(main())
 print("🎁", offset)
 print("🎁", datetime.now())

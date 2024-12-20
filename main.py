@@ -70,14 +70,6 @@ async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     await payment_start(update=update, context=context)
 
 async def main():
-    await asyncio.gather(
-        start_payment(),
-        hello(),
-        start(),
-        help(),
-        start_sendDm(),
-        stop_sendDm()
-    )
     # Load bot token from environment variable or config file in production
     application = ApplicationBuilder().token(bot_token).build()
 
@@ -90,11 +82,8 @@ async def main():
     application.add_handler(CommandHandler("stop_sendDm", stop_sendDm))
     
     application.add_handler(CallbackQueryHandler(button_handler))
-    # application.add_handler(MessageHandler(filters.TEXT, message_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler))
     
-    # application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_message_handler))
-    # Start the Bot
     print("👟👟Bot is running...")
     
     try:

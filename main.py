@@ -132,20 +132,21 @@ async def setup_handlers(application):
         MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler)
     ]
     
-    await asyncio.gather(*[application.add_handler(handler) for handler in handlers])
+    for handler in handlers:
+        application.add_handler(handler)
 
 async def main():
     try:
         application = ApplicationBuilder().token(bot_token).build()
 
-        # Add handlers concurrently
+        # Add await here
         await setup_handlers(application)
         
         print("👟👟Bot is running...")
         logger.info("Bot is starting...")
         
-        # Start the bot with simplified polling
-        await application.run_polling()
+        # Run the bot
+        await application.run_polling(allowed_updates=Update.ALL_TYPES)
         
     except Exception as e:
         logger.error(f"Critical error: {e}")
@@ -153,6 +154,7 @@ async def main():
 
 if __name__ == '__main__':
     try:
+        # Use asyncio.run() to run the async main function
         asyncio.run(main())
     except KeyboardInterrupt:
         print("Bot stopped by user")

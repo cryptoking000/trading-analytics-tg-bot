@@ -39,118 +39,129 @@ def extract_token_contracts(message):
     return None
 
 def get_token_contract_data(token_contracts):
-    api_searchurl = f"https://api.dexscreener.com/latest/dex/search?q={token_contracts}"
-    response = requests.get(api_searchurl, timeout=10)
-    response.raise_for_status()
-    data = response.json()
-    pair_info = data.get('pairs', [])
-    if not pair_info:
-        print("No pairs found for the provided token contracts.")
-        return None
-    data = pair_info[0]
-    print("Successfully retrieved pair data")
+    try:
+        api_searchurl = f"https://api.dexscreener.com/latest/dex/search?q={token_contracts}"
+        response = requests.get(api_searchurl, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        pair_info = data.get('pairs', [])
+        if not pair_info:
+            print("No pairs found for the provided token contracts.")
+            return None
+        data = pair_info[0]
+        print("Successfully retrieved pair data")
 
-    def safe_get(obj, *keys, default="N/A"):
-        try:
-            current = obj
-            for key in keys:
-                current = current[key]
-            return current if current is not None else default
-        except (KeyError, TypeError):
-            print(f"Failed to get value for keys {keys}")
-            return default
+        def safe_get(obj, *keys, default="N/A"):
+            try:
+                current = obj
+                for key in keys:
+                    current = current[key]
+                return current if current is not None else default
+            except (KeyError, TypeError):
+                print(f"Failed to get value for keys {keys}")
+                return default
 
-    chain = safe_get(data, "chainId")
-    dex_id = safe_get(data, "dexId")
-    pairAddress = safe_get(data, "pairAddress")
-    base_token_address = safe_get(data, "baseToken", "address")
-    quote_token_address = safe_get(data, "quoteToken", "address")
-    base_token_name = safe_get(data, "baseToken", "name", default="Unknown")
-    quote_token_name = safe_get(data, "quoteToken", "name", default="Unknown")
-    base_token_symbol = safe_get(data, "baseToken", "symbol")
-    quote_token_symbol = safe_get(data, "quoteToken", "symbol")
-    price_native = safe_get(data, "priceNative")
-    price_usd = safe_get(data, "priceUsd")
-    fdv = safe_get(data, "fdv")
-    liquidity_usd = safe_get(data, "liquidity", "usd")
-    liquidity_base = safe_get(data, "liquidity", "base")
-    liquidity_quote = safe_get(data, "liquidity", "quote")
-    volume_h24 = safe_get(data, "volume", "h24")
-    volume_h6 = safe_get(data, "volume", "h6")
-    volume_h1 = safe_get(data, "volume", "h1")
-    volume_m5 = safe_get(data, "volume", "m5")
-    price_change_h1 = safe_get(data, "priceChange", "h1")
-    price_change_h24 = safe_get(data, "priceChange", "h24")
-    price_change_h6 = safe_get(data, "priceChange", "h6")
-    price_change_m5 = safe_get(data, "priceChange", "m5")   
-    buys_number_h1 = safe_get(data, "txns", "h1", "buys")
-    sells_number_h1 = safe_get(data, "txns", "h1", "sells")
-    buys_number_h24 = safe_get(data, "txns", "h24", "buys")
-    sells_number_h24 = safe_get(data, "txns", "h24", "sells")
-    buys_number_h6 = safe_get(data, "txns", "h6", "buys")
-    sells_number_h6 = safe_get(data, "txns", "h6", "sells")
-    buys_number_m5 = safe_get(data, "txns", "m5", "buys")
-    sells_number_m5 = safe_get(data, "txns", "m5", "sells")
-    token_age = safe_get(data, "pairCreatedAt")   
-    socials = safe_get(data, "info", "socials", default=[])
-    websites = safe_get(data, "info", "websites", default=[])   
+        chain = safe_get(data, "chainId")
+        dex_id = safe_get(data, "dexId")
+        pairAddress = safe_get(data, "pairAddress")
+        base_token_address = safe_get(data, "baseToken", "address")
+        quote_token_address = safe_get(data, "quoteToken", "address")
+        base_token_name = safe_get(data, "baseToken", "name", default="Unknown")
+        quote_token_name = safe_get(data, "quoteToken", "name", default="Unknown")
+        base_token_symbol = safe_get(data, "baseToken", "symbol")
+        quote_token_symbol = safe_get(data, "quoteToken", "symbol")
+        price_native = safe_get(data, "priceNative")
+        price_usd = safe_get(data, "priceUsd")
+        fdv = safe_get(data, "fdv")
+        liquidity_usd = safe_get(data, "liquidity", "usd")
+        liquidity_base = safe_get(data, "liquidity", "base")
+        liquidity_quote = safe_get(data, "liquidity", "quote")
+        volume_h24 = safe_get(data, "volume", "h24")
+        volume_h6 = safe_get(data, "volume", "h6")
+        volume_h1 = safe_get(data, "volume", "h1")
+        volume_m5 = safe_get(data, "volume", "m5")
+        price_change_h1 = safe_get(data, "priceChange", "h1")
+        price_change_h24 = safe_get(data, "priceChange", "h24")
+        price_change_h6 = safe_get(data, "priceChange", "h6")
+        price_change_m5 = safe_get(data, "priceChange", "m5")   
+        buys_number_h1 = safe_get(data, "txns", "h1", "buys")
+        sells_number_h1 = safe_get(data, "txns", "h1", "sells")
+        buys_number_h24 = safe_get(data, "txns", "h24", "buys")
+        sells_number_h24 = safe_get(data, "txns", "h24", "sells")
+        buys_number_h6 = safe_get(data, "txns", "h6", "buys")
+        sells_number_h6 = safe_get(data, "txns", "h6", "sells")
+        buys_number_m5 = safe_get(data, "txns", "m5", "buys")
+        sells_number_m5 = safe_get(data, "txns", "m5", "sells")
+        token_age = safe_get(data, "pairCreatedAt")   
+        socials = safe_get(data, "info", "socials", default=[])
+        websites = safe_get(data, "info", "websites", default=[])   
 
-    origin_url = next((website.get("url") for website in websites if website.get("label") == "Website"), "#")
-    telegram_url = next((social.get("url") for social in socials if social.get("type") == "telegram"), "#")
-    twitter_url = next((social.get("url") for social in socials if social.get("type") == "twitter"), "#")
+        origin_url = next((website.get("url") for website in websites if website.get("label") == "Website"), "#")
+        telegram_url = next((social.get("url") for social in socials if social.get("type") == "telegram"), "#")
+        twitter_url = next((social.get("url") for social in socials if social.get("type") == "twitter"), "#")
 
-    token_data = {
-        "token_contracts": token_contracts,
-        "analysis_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "chain": chain,
-        "dex_id": dex_id,
-        "pairAddress": pairAddress,
-        "base_token_address": base_token_address,
-        "quote_token_address": quote_token_address,
-        "base_token_name": base_token_name,
-        "quote_token_name": quote_token_name,
-        "base_token_symbol": base_token_symbol,
-        "quote_token_symbol": quote_token_symbol,
-        "price_native": price_native,
-        "price_usd": price_usd,
-        "fdv": fdv,
-        "liquidity": {
-            "usd": liquidity_usd,
-            "base": liquidity_base,
-            "quote": liquidity_quote
-        },
-        "volume": {
-            "h24": volume_h24,
-            "h6": volume_h6,
-            "h1": volume_h1,
-            "m5": volume_m5
-        },
-        "price_change": {
-            "h1": price_change_h1,
-            "h24": price_change_h24,
-            "h6": price_change_h6,
-            "m5": price_change_m5
-        },
-        "txns": {
-            "buys": {
-                "h1": buys_number_h1,
-                "h24": buys_number_h24,
-                "h6": buys_number_h6,
-                "m5": buys_number_m5
+        token_data = {
+            "token_contracts": token_contracts,
+            "analysis_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "chain": chain,
+            "dex_id": dex_id,
+            "pairAddress": pairAddress,
+            "base_token_address": base_token_address,
+            "quote_token_address": quote_token_address,
+            "base_token_name": base_token_name,
+            "quote_token_name": quote_token_name,
+            "base_token_symbol": base_token_symbol,
+            "quote_token_symbol": quote_token_symbol,
+            "price_native": price_native,
+            "price_usd": price_usd,
+            "fdv": fdv,
+            "liquidity": {
+                "usd": liquidity_usd,
+                "base": liquidity_base,
+                "quote": liquidity_quote
             },
-            "sells": {
-                "h1": sells_number_h1,
-                "h24": sells_number_h24,
-                "h6": sells_number_h6,
-                "m5": sells_number_m5
-            }
-        },
-        "token_age": token_age,
-        "origin_url": origin_url,
-        "telegram_url": telegram_url,
-        "twitter_url": twitter_url
-    }
-    return token_data
+            "volume": {
+                "h24": volume_h24,
+                "h6": volume_h6,
+                "h1": volume_h1,
+                "m5": volume_m5
+            },
+            "price_change": {
+                "h1": price_change_h1,
+                "h24": price_change_h24,
+                "h6": price_change_h6,
+                "m5": price_change_m5
+            },
+            "txns": {
+                "buys": {
+                    "h1": buys_number_h1,
+                    "h24": buys_number_h24,
+                    "h6": buys_number_h6,
+                    "m5": buys_number_m5
+                },
+                "sells": {
+                    "h1": sells_number_h1,
+                    "h24": sells_number_h24,
+                    "h6": sells_number_h6,
+                    "m5": sells_number_m5
+                }
+            },
+            "token_age": token_age,
+            "origin_url": origin_url,
+            "telegram_url": telegram_url,
+            "twitter_url": twitter_url
+        }
+        return token_data
+
+    except requests.Timeout:
+        print(f"Timeout error occurred while fetching data for token {token_contracts}")
+        return None
+    except requests.RequestException as e:
+        print(f"Request error occurred while fetching data for token {token_contracts}: {str(e)}")
+        return None
+    except Exception as e:
+        print(f"Unexpected error occurred while fetching data for token {token_contracts}: {str(e)}")
+        return None
 
 def message_collection(message):
     global i  # Declare i as global to modify it

@@ -100,8 +100,8 @@ def main():
         application.add_handler(CommandHandler("hello", hello))
         application.add_handler(CommandHandler("help", help))
         application.add_handler(CommandHandler("subscribe", start_payment))
-        application.add_handler(CommandHandler("start_sendDm", start_sendDm))
-        application.add_handler(CommandHandler("stop_sendDm", stop_sendDm))
+        application.add_handler(CommandHandler("startdm", start_sendDm))
+        application.add_handler(CommandHandler("stopdm", stop_sendDm))
 
         print("👟👟Bot is running...")
         

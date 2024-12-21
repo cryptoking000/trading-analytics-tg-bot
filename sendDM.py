@@ -9,6 +9,7 @@ from ai_insight import ai_insight
 from pymongo import MongoClient
 from datetime import datetime
 from messagecollection import get_token_contract_data
+
 load_dotenv()
 mongo_uri = os.getenv("MONGO_URI")
 mongo_client = MongoClient(mongo_uri)
@@ -81,26 +82,33 @@ async def stop_dm_service():
         dm_task = None
     print("DM service stopped successfully")
 async def all_token_data_update():
+    print("💚all_token_data updating...")
     cursor = token_collection.find()  # Get regular cursor
     token_contracts = list(cursor)    # Convert cursor to list
-    print("💚",token_contracts)
+    print("💚token_contracts loaded")
     for token_contract in token_contracts:
         await token_data_update(token_contract)
 async def token_data_update(token_contract):
+    
     token_contract_data = get_token_contract_data(token_contract["token_contracts"])
-    existing_entry = token_collection.find_one({"token_contracts": {"$in": [token_contract["token_contracts"]]}})
-    order_token_contract_data = datetime.now().hour
-    token_collection.update_one(
-            {"_id": existing_entry["_id"]},
-            {"$set": {
-                "all_data": {
-                    **existing_entry["all_data"],  # Preserve previous data
-                    f"message_date({order_token_contract_data})": datetime.now(),
-                    f"num_times_mentioned({order_token_contract_data})": existing_entry["num_times_mentioned"],  
-                    f"token_contract_data({order_token_contract_data})": token_contract_data,
-                }
-            }}
-        )
+    if token_contract_data == None:
+        return
+    else:
+        print("💚",token_contract_data["token_contracts"])
+        
+        existing_entry = token_collection.find_one({"token_contracts": {"$in": [token_contract["token_contracts"]]}})
+        order_token_contract_data = datetime.now().hour
+        token_collection.update_one(
+                {"_id": existing_entry["_id"]}, 
+                {"$set": {
+                    "all_data": {
+                        **existing_entry["all_data"],  # Preserve previous data
+                        f"message_date({order_token_contract_data})": datetime.now(),
+                        f"num_times_mentioned({order_token_contract_data})": existing_entry["num_times_mentioned"],  
+                        f"token_contract_data({order_token_contract_data})": token_contract_data,
+                    }
+                }}
+            )
     print(f"Successfully updated token data🆓")
 
 async def periodic_dm():

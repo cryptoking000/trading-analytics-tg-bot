@@ -7,8 +7,8 @@ from datetime import datetime
 from database_function import db
 from chatbot import chat_bot
 # from chatbot_tavily import tavily_search
-# from telegram.constants import ChatType, ParseMode
-# from telegram import ChatType
+from telegram.constants import ChatType, ParseMode
+from telegram import ChatType
 from messagecollection import message_collection
 import asyncio
 

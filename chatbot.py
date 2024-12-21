@@ -4,8 +4,10 @@ from IPython.display import Markdown, display
 from llama_index.llms.openai import OpenAI
 # from chatbot_tavily import tavily_search
 from llama_index.core import Document
+import asyncio
 from datetime import datetime
 import os
+import json
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -21,31 +23,43 @@ port = 27017
 # Specify the required fields using dot notation
 field_names = ["all_data","token_contracts"]
 
-
-
+# Local file path to store MongoDB data
+LOCAL_DATA_FILE = "mongo_data.json"
 
 async def chat_bot(input_message):
    
     try:
-        reader = SimpleMongoReader(host, port)
-        print("loading data from mongodb...")
-        documents = reader.load_data(
-            db_name, collection_name, field_names
-        )
+        # Check if local file exists and is not older than 24 hours
+        should_fetch_from_mongo = True
+        if os.path.exists(LOCAL_DATA_FILE):
+            file_time = datetime.fromtimestamp(os.path.getmtime(LOCAL_DATA_FILE))
+            if (datetime.now() - file_time).days < 1:
+                should_fetch_from_mongo = False
+
+        if should_fetch_from_mongo:
+            # Fetch from MongoDB and save locally
+            reader = SimpleMongoReader(host, port)
+            print("loading data from mongodb...")
+            documents = reader.load_data(
+                db_name, collection_name, field_names
+            )
+            
+            # Save to local file
+            with open(LOCAL_DATA_FILE, 'w') as f:
+                json.dump([doc.to_dict() for doc in documents], f)
+        else:
+            # Load from local file
+            print("loading data from local file...")
+            with open(LOCAL_DATA_FILE, 'r') as f:
+                data = json.load(f)
+                documents = [Document.from_dict(doc) for doc in data]
          
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
             You are a crypto advisor and expert researcher tasked with gathering information for a daily report.   Your current objective is to gather documents about : "https://dexscreener.com".\n
             you should tell very short and comprehensive answer to the following question: {input_message}
             write in markdown format within 500 words.
             """
-        # print("Generated prompt for TavilyClient:")
         
-        # text_list = await tavily_search(input_message)
-        # # if not documents:
-        # #     print("error______")
-        # #     return "No documents found for the given input."
-       
-        # documents = [Document(text=t) for t in text_list]
         print("Documents loaded successfully.")
         index = SummaryIndex.from_documents(documents)
         query_engine = index.as_query_engine(llm)  # Pass the LLM to the query engine
@@ -60,6 +74,8 @@ async def chat_bot(input_message):
     except Exception as e:
         print(f"An error occurred: {e}")
         return "An error occurred while processing your request."
-
-# Usage example
-# asyncio.run(chat_bot("What is the highest token price change in the last 24 hours?"))
+if __name__ == "__main__":
+    # Example usage
+    input_message = "What are the top 5 tokens with the highest market cap?"
+    response = asyncio.run(chat_bot(input_message))
+    print(response)

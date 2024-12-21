@@ -34,14 +34,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         last_active = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         print("👉start command----")
         # Update user data asynchronously
-        await asyncio.create_task(db.update_user_data(
+        db.update_user_data(
             chat_id=update.message.chat_id,
             username=update.message.from_user.username,
             last_active=last_active
-        ))
+        )
         
         # Get user data asynchronously
-        user_data = await asyncio.create_task(db.get_user(update.message.chat_id))
+        user_data =db.get_user(update.message.chat_id)
         expired_time = user_data.get("expired_time") if user_data else None
         
         if expired_time is None:
@@ -141,7 +141,7 @@ async def stop_recycle(update: Update, context: ContextTypes.DEFAULT_TYPE) ->Non
     except Exception as e:
         logger.error(f"Error stopping DM service: {e}")
         await update.message.reply_text("Failed to stop DM service. Please try again later.")
-async def main():
+def main():
     try:
         application = ApplicationBuilder().token(bot_token).build()
 
@@ -162,7 +162,7 @@ async def main():
         logger.info("Bot is starting...")
     
         # Run the bot until the user presses Ctrl-C
-        await application.run_polling(allowed_updates=Update.ALL_TYPES)
+        application.run_polling(allowed_updates=Update.ALL_TYPES)
     
     except Exception as e:
         logger.error(f"Critical error: {e}")

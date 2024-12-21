@@ -5,7 +5,16 @@ import json
 from database_function import db
 import os
 from dotenv import load_dotenv
+from ai_insight import ai_insight
+from pymongo import MongoClient
+from datetime import datetime
+from messagecollection import get_token_contract_data
+
 load_dotenv()
+mongo_uri = os.getenv("MONGO_URI")
+mongo_client = MongoClient(mongo_uri)
+db = mongo_client["telegram_bot_db"]
+token_collection = db["token_contracts"]
 TOKEN = os.getenv("bot_token")
  # Default chat_id if no recent messages
 
@@ -44,11 +53,12 @@ async def send_dm():
                 
             is_paid = user.get('is_paid', False)
             username = user.get('username', 'User')
-
+            ai_insight_text = await ai_insight()
             if chat_id not in processed_chat_ids:
                 message = (
                     f"Hello {username}!\n\n"
                     f"{' Thank you for being our premium member!' if is_paid else '💫 Upgrade to premium for more features!'}\n"
+                    f"{f'{ai_insight_text}' if is_paid else ''}"
                     f"Use /help to see available commands."
                 )
                 
@@ -65,20 +75,60 @@ async def stop_dm_service():
     global dm_task
     if dm_task:
         dm_task.cancel()
+        try:
+            await dm_task
+        except asyncio.CancelledError:
+            pass
         dm_task = None
     print("DM service stopped successfully")
+async def all_token_data_update():
+    print("💚all_token_data updating...")
+    cursor = token_collection.find()  # Get regular cursor
+    token_contracts = list(cursor)    # Convert cursor to list
+    print("💚token_contracts loaded")
+    for token_contract in token_contracts:
+        await token_data_update(token_contract)
+async def token_data_update(token_contract):
+    
+    token_contract_data = get_token_contract_data(token_contract["token_contracts"])
+    if token_contract_data == None:
+        return
+    else:
+        print("💚",token_contract_data["token_contracts"])
+        
+        existing_entry = token_collection.find_one({"token_contracts": {"$in": [token_contract["token_contracts"]]}})
+        order_token_contract_data = datetime.now().hour
+        token_collection.update_one(
+                {"_id": existing_entry["_id"]}, 
+                {"$set": {
+                    "all_data": {
+                        **existing_entry["all_data"],  # Preserve previous data
+                        f"message_date({order_token_contract_data})": datetime.now(),
+                        f"num_times_mentioned({order_token_contract_data})": existing_entry["num_times_mentioned"],  
+                        f"token_contract_data({order_token_contract_data})": token_contract_data,
+                    }
+                }}
+            )
+    print(f"Successfully updated token data🆓")
 
 async def periodic_dm():
-    try:
-        await send_dm()
-        await asyncio.sleep(20)  # Wait for 20 seconds before next execution
-        asyncio.create_task(periodic_dm())  # Schedule next execution
-    except asyncio.CancelledError:
-        print("DM service cancelled")
-    except Exception as e:
-        print(f"Error in DM service: {str(e)}")
-        await asyncio.sleep(5)  # Short sleep on error
-        asyncio.create_task(periodic_dm())  # Retry on error
+    while True:
+        try:
+            await all_token_data_update()
+            print("Token data updated")
+            await asyncio.sleep(10)
+            
+            print("DM service starting...")
+            await send_dm()
+            
+            await asyncio.sleep(200)
+            
+        except asyncio.CancelledError:
+            print("DM service cancelled")
+            break
+        except Exception as e:
+            print(f"Error in DM service: {str(e)}")
+            await asyncio.sleep(50)
 
 async def start_dm_service():
     global dm_task

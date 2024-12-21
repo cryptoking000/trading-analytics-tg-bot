@@ -20,25 +20,31 @@ port = 27017
 
 # Specify the required fields using dot notation
 field_names = ["all_data","token_contracts"]
+reader = SimpleMongoReader(host, port)
+
+documents = reader.load_data(
+    db_name, collection_name, field_names
+)
 
 
-
-
-async def chat_bot(input_message):
+async def ai_insight():
    
     try:
-        reader = SimpleMongoReader(host, port)
-        documents = reader.load_data(
-            db_name, collection_name, field_names
-        )
          
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
-            You are a crypto advisor and expert researcher tasked with gathering information for a daily report.   Your current objective is to gather documents about : "https://dexscreener.com".\n
-            you should tell very short and comprehensive answer to the following question: {input_message}
-            write in markdown format within 500 words.
+            You are a crypto advisor and expert researcher tasked with gathering information for a daily report.  
+            Use AI algorithms to detect unusual patterns, such as sudden increases in token mentions across multiple groups.
+            Correlate token mentions with price and volume movements to identify potential opportunities.
+            Provide a sentence like the following:
+            Example: “Hello! I noticed an unusual surge in mentions of token XYZ, which correlates with a 20% volume increase in the past 24 hours. This token might be worth your attention!”
+            Example: “Token ABC is showing an upward trend in mentions and liquidity. Based on past patterns, similar tokens experienced a 15%-30% appreciation within 48 hours.”
+            (please Involve link related in)
+            Write differently every time.
+
+            write in markdown format within 500 characters.
             """
         # print("Generated prompt for TavilyClient:")
-        print(prompt)
+     
         # text_list = await tavily_search(input_message)
         # # if not documents:
         # #     print("error______")
@@ -49,10 +55,10 @@ async def chat_bot(input_message):
         query_engine = index.as_query_engine(llm)  # Pass the LLM to the query engine
 
         query_text = prompt
-        print(f"Querying for-----------------------: {query_text}")
         response =  query_engine.query(query_text)  # Use await here
 
-        print("Query response received.----------------------")
+        print(f"Querying for-----------------------: {query_text}")
+        print(f"Query response received.-----------:{response}")
         return response
        
     except Exception as e:

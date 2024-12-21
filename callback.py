@@ -41,6 +41,7 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
         
         async for word in input_message.split():
             if len(word) >= 40 and word.isalnum(): 
+                message_collection(update.message)
                 hex_data = word
                 await update.message.reply_text(f'Token address received: {word}')  # Reply with the token address
               # await update.message.reply_text(f'this is normal word:{word}')

@@ -8,7 +8,7 @@ from telegram.ext import (
     filters,
 )
 from telegram.constants import ParseMode
-from sendDM import start_dm_service, stop_dm_service
+from recylce import start_dm_service, stop_dm_service
 from subscribe import payment_start, button_handler
 from callback import address_message_handler
 import telegram
@@ -33,15 +33,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         context.user_data['subscribe_input_flag'] = False
         last_active = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
-        # Update user data
-        db.update_user_data(
+        # Update user data asynchronously
+        await asyncio.create_task(db.update_user_data(
             chat_id=update.message.chat_id,
             username=update.message.from_user.username,
             last_active=last_active
-        )
+        ))
         
-        # Get user data
-        user_data = db.get_user(update.message.chat_id)
+        # Get user data asynchronously
+        user_data = await asyncio.create_task(db.get_user(update.message.chat_id))
         expired_time = user_data.get("expired_time") if user_data else None
         
         if expired_time is None:
@@ -121,7 +121,7 @@ async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         logger.error(f"Error in payment process: {e}")
         await update.message.reply_text("Payment process failed. Please try again later.")
 
-def main():
+async def main():
     try:
         application = ApplicationBuilder().token(bot_token).build()
 
@@ -138,12 +138,16 @@ def main():
         print("👟👟Bot is running...")
         logger.info("Bot is starting...")
         
-        # Start the bot with simplified polling
-        application.run_polling()
+        # Start the bot with proper async handling
+        await application.initialize()
+        await application.start()
+        await application.run_polling()
         
     except Exception as e:
         logger.error(f"Critical error: {e}")
         print(f"An error occurred: {e}")
+    finally:
+        await application.stop()
 
 if __name__ == '__main__':
     try:

@@ -42,15 +42,17 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
             if len(word) >= 40 and word.isalnum(): 
                 message_collection(update.message)
                 hex_data = word
-                await update.message.reply_text(f'Token address received: {word}')  # Reply with the token address
+                # await update.message.reply_text(f'Token address received: {word}')  # Reply with the token address
               # await update.message.reply_text(f'this is normal word:{word}')
         if hex_data == "":  # this is a normal message
             if update.effective_chat.type == ChatType.PRIVATE:
                 # output_message = await tavily_search(input_message)
-                output_message = await chat_bot(input_message)
+                await update.message.chat.send_action(action="typing")
+                await update.message.reply_text("🤔 Processing your request, please wait...")
+                output_message = await chat_bot(input_message)           
                 await context.bot.send_message(
                     chat_id=update.effective_chat.id,
-                    text=f'this is normal message: {output_message}',
+                    text=output_message,
                     parse_mode=ParseMode.MARKDOWN
                 )  
             else:

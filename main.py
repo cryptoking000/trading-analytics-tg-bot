@@ -32,7 +32,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         context.user_data['subscribe_input_flag'] = False
         last_active = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
+        print("👉start command----")
         # Update user data asynchronously
         await asyncio.create_task(db.update_user_data(
             chat_id=update.message.chat_id,
@@ -68,6 +68,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
+        print("👉hello command----")
         user_name = update.message.from_user.first_name
         await update.message.reply_text(f'Hello {user_name}! How can I assist you today?')
     except Exception as e:
@@ -76,6 +77,7 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
+        print("👉help command----")
         message = (
             "🤖 *Welcome to CryptoAdvisor Bot!*\n\n"
             "I am your AI-powered cryptocurrency market assistant. Here's what I can do for you:\n\n"
@@ -99,6 +101,7 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def start_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
+        print("👉start_sendDm command----")
         await start_dm_service()
         await update.message.reply_text("DM service started successfully!")
 
@@ -108,6 +111,7 @@ async def start_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def stop_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
+        print("👉stop_sendDm command----")
         await stop_dm_service()
     except Exception as e:
         logger.error(f"Error stopping DM service: {e}")
@@ -115,6 +119,7 @@ async def stop_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
 async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
+        print("👉start_payment command----")
         context.user_data['subscribe_input_flag'] = True
         await payment_start(update=update, context=context)
     except Exception as e:

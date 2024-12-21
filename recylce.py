@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from ai_insight import ai_insight
 from pymongo import MongoClient
 from datetime import datetime
-from messagecollection import get_token_contract_data
+from messagecollection import get_token_contract_data, message_collection
 
 load_dotenv()
 mongo_uri = os.getenv("MONGO_URI")
@@ -114,14 +114,17 @@ async def token_data_update(token_contract):
 async def periodic_dm():
     while True:
         try:
-            await all_token_data_update()
-            print("Token data updated")
+            await asyncio.gather(
+                message_collection(),
+                all_token_data_update()
+            )
+            print("Message collection and token data update completed")
             await asyncio.sleep(10)
             
             print("DM service starting...")
             await send_dm()
             
-            await asyncio.sleep(200)
+            await asyncio.sleep(600)
             
         except asyncio.CancelledError:
             print("DM service cancelled")

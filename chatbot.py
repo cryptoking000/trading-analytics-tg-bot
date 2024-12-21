@@ -28,6 +28,7 @@ async def chat_bot(input_message):
    
     try:
         reader = SimpleMongoReader(host, port)
+        print("loading data from mongodb...")
         documents = reader.load_data(
             db_name, collection_name, field_names
         )
@@ -38,13 +39,14 @@ async def chat_bot(input_message):
             write in markdown format within 500 words.
             """
         # print("Generated prompt for TavilyClient:")
-        print(prompt)
+        
         # text_list = await tavily_search(input_message)
         # # if not documents:
         # #     print("error______")
         # #     return "No documents found for the given input."
        
         # documents = [Document(text=t) for t in text_list]
+        print("Documents loaded successfully.")
         index = SummaryIndex.from_documents(documents)
         query_engine = index.as_query_engine(llm)  # Pass the LLM to the query engine
 

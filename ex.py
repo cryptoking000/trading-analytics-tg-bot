@@ -15,7 +15,7 @@ import os
 from dotenv import load_dotenv
 import logging
 import time
-from sendDM import start_dm_service, stop_dm_service
+from recylce import start_dm_service, stop_dm_service
 load_dotenv()
 bot_token = '8006871239:AAH3-qkNrNj6SR3r7hC_Sp3WoLVOlbhg66Q'
 

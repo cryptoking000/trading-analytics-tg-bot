@@ -7,8 +7,7 @@ from datetime import datetime
 from database_function import db
 from chatbot import chat_bot
 # from chatbot_tavily import tavily_search
-# from telegram.constants import ChatType, ParseMode
-# from telegram import ChatType
+from telegram.constants import ChatType, ParseMode
 from messagecollection import message_collection
 import asyncio
 
@@ -35,23 +34,25 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
     current_state = context.user_data.get("current_state", "")
     
     if not context.user_data.get('subscribe_input_flag', False):
-        message_collection(update.message)
         input_message = update.message.text.strip()  # Get the token address from the message
         hex_data = ""
         print("🎄🎄input_message", input_message)
         
-        async for word in input_message.split():
+        for word in input_message.split():
             if len(word) >= 40 and word.isalnum(): 
+                message_collection(update.message)
                 hex_data = word
-                await update.message.reply_text(f'Token address received: {word}')  # Reply with the token address
+                # await update.message.reply_text(f'Token address received: {word}')  # Reply with the token address
               # await update.message.reply_text(f'this is normal word:{word}')
         if hex_data == "":  # this is a normal message
             if update.effective_chat.type == ChatType.PRIVATE:
                 # output_message = await tavily_search(input_message)
-                output_message = await chat_bot(input_message)
+                await update.message.chat.send_action(action="typing")
+                await update.message.reply_text("🤔 Processing your request, please wait...")
+                output_message = await chat_bot(input_message)           
                 await context.bot.send_message(
                     chat_id=update.effective_chat.id,
-                    text=f'this is normal message: {output_message}',
+                    text=output_message,
                     parse_mode=ParseMode.MARKDOWN
                 )  
             else:

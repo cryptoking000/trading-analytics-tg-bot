@@ -125,7 +125,22 @@ async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     except Exception as e:
         logger.error(f"Error in payment process: {e}")
         await update.message.reply_text("Payment process failed. Please try again later.")
-
+async def start_recycle(update: Update, context: ContextTypes.DEFAULT_TYPE) ->None:
+    try:
+        print("👉start_recycle command----")
+        await start_dm_service()
+        await update.message.reply_text("DM service started successfully!")
+    except Exception as e:
+        logger.error(f"Error starting DM service: {e}")
+        await update.message.reply_text("Failed to start DM service. Please try again later.")
+async def stop_recycle(update: Update, context: ContextTypes.DEFAULT_TYPE) ->None:
+    try:
+        print("👉stop_recycle command----")
+        await stop_dm_service()
+        await update.message.reply_text("DM service stopped successfully!")
+    except Exception as e:
+        logger.error(f"Error stopping DM service: {e}")
+        await update.message.reply_text("Failed to stop DM service. Please try again later.")
 async def main():
     try:
         application = ApplicationBuilder().token(bot_token).build()
@@ -137,27 +152,26 @@ async def main():
         application.add_handler(CommandHandler("subscribe", start_payment))
         application.add_handler(CommandHandler("startdm", start_sendDm))
         application.add_handler(CommandHandler("stopdm", stop_sendDm))
+        application.add_handler(CommandHandler("startrecycle", start_recycle))
+        application.add_handler(CommandHandler("stoprecycle", stop_recycle))
+
         application.add_handler(CallbackQueryHandler(button_handler))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler))
-        
+    
         print("👟👟Bot is running...")
         logger.info("Bot is starting...")
-        
-        # Start the bot with proper async handling
-        await application.initialize()
-        await application.start()
-        await application.run_polling()
-        
+    
+        # Run the bot until the user presses Ctrl-C
+        await application.run_polling(allowed_updates=Update.ALL_TYPES)
+    
     except Exception as e:
         logger.error(f"Critical error: {e}")
         print(f"An error occurred: {e}")
-    finally:
-        await application.stop()
 
 if __name__ == '__main__':
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Bot stopped by user")
-    except Exception as e:
-        print(f"Fatal error: {e}")
+        try:
+            asyncio.run(main())
+        except KeyboardInterrupt:
+            print("Bot stopped by user")
+        except Exception as e:
+            print(f"Fatal error: {e}")

@@ -35,7 +35,6 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
     current_state = context.user_data.get("current_state", "")
     
     if not context.user_data.get('subscribe_input_flag', False):
-        message_collection(update.message)
         input_message = update.message.text.strip()  # Get the token address from the message
         hex_data = ""
         print("🎄🎄input_message", input_message)

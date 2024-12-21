@@ -219,7 +219,7 @@ def message_collection(message):
 async def process_channel(client, channel_username, k, total_channels):
     print("🎁🎁🎁🎁", k, "/", total_channels, channel_username)
     try:
-        async for message in client.iter_messages(channel_username):
+        for message in client.iter_messages(channel_username):
             if message.date.date() >= offset.date():  # Only output messages from the previous day
                 await message_collection(message)
             else:

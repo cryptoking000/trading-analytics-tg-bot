@@ -8,7 +8,6 @@ from database_function import db
 from chatbot import chat_bot
 # from chatbot_tavily import tavily_search
 from telegram.constants import ChatType, ParseMode
-from telegram import ChatType
 from messagecollection import message_collection
 import asyncio
 
@@ -39,7 +38,7 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
         hex_data = ""
         print("🎄🎄input_message", input_message)
         
-        async for word in input_message.split():
+        for word in input_message.split():
             if len(word) >= 40 and word.isalnum(): 
                 message_collection(update.message)
                 hex_data = word

@@ -7,7 +7,7 @@ from llama_index.core import Document
 from datetime import datetime
 import os
 from dotenv import load_dotenv
-from llama_index.vector_stores import FaissVectorStore
+# from llama_index.vector_stores import FaissVectorStore
 load_dotenv()
 
 llm = OpenAI(model="gpt-3.5-turbo", api_key=os.getenv("OPENAI_API_KEY"), max_output_tokens=500)  # Use environment variable for API key
@@ -44,8 +44,9 @@ async def ai_insight():
             write in markdown format within 500 characters.
             """
        
-        vector_store = FaissVectorStore.from_documents(documents)
-        index = SummaryIndex.from_vector_store(vector_store)   
+        # vector_store = FaissVectorStore.from_documents(documents)
+        # index = SummaryIndex.from_vector_store(vector_store)   
+        index = SummaryIndex.from_documents(documents)
         query_engine = index.as_query_engine(llm=llm, streaming=True, similarity_top_k=1)  # Pass the LLM to the query engine
 
         print("starting query...")

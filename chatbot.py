@@ -17,9 +17,8 @@ async def chat_bot(input_message):
 
         chat_engine = SimpleChatEngine.from_defaults()
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
-            You are a crypto advisor and expert researcher tasked with gathering information for a daily report.   Your current objective is to gather documents about : "https://dexscreener.com".\n
-            you should tell very short and comprehensive answer to the following question: {input_message}
-            write in markdown format within 500 words.
+            You are a crypto advisor .   
+            you must write very short answer to the following question: {input_message}
             """
         
         print("Documents loaded successfully.")
@@ -27,7 +26,7 @@ async def chat_bot(input_message):
         
         print("Query response received.----------------------")
         print(response)
-        return response
+        return str(response)
        
     except Exception as e:
         print(f"An error occurred: {e}")

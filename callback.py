@@ -49,7 +49,8 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
                 # output_message = await tavily_search(input_message)
                 await update.message.chat.send_action(action="typing")
                 await update.message.reply_text("🤔 Processing your request, please wait...")
-                output_message = await chat_bot(input_message)           
+                output_message = await chat_bot(input_message) 
+                print(f"🤔",{output_message})          
                 await update.message.reply_text(text=output_message, parse_mode=ParseMode.MARKDOWN)
                
             else:

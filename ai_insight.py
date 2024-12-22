@@ -1,16 +1,13 @@
 from llama_index.core import SummaryIndex
 from llama_index.readers.mongodb import SimpleMongoReader
-from IPython.display import Markdown, display
 from llama_index.llms.openai import OpenAI
-# from chatbot_tavily import tavily_search
-from llama_index.core import Document
 from datetime import datetime
 import os
 from dotenv import load_dotenv
 # from llama_index.vector_stores import FaissVectorStore
 load_dotenv()
 
-llm = OpenAI(model="gpt-3.5-turbo", api_key=os.getenv("OPENAI_API_KEY"), max_output_tokens=500)  # Use environment variable for API key
+llm = OpenAI(model="gpt-3.5-turbo", api_key=os.getenv("OPENAI_API_KEY"), max_output_tokens=300)  # Use environment variable for API key
 mongo_uri = os.getenv("MONGO_URI")
 db_name = "telegram_bot_db"
 collection_name = "token_contracts"
@@ -47,7 +44,7 @@ async def ai_insight():
         # vector_store = FaissVectorStore.from_documents(documents)
         # index = SummaryIndex.from_vector_store(vector_store)   
         index = SummaryIndex.from_documents(documents)
-        query_engine = index.as_query_engine(llm=llm, streaming=True, similarity_top_k=1)  # Pass the LLM to the query engine
+        query_engine = index.as_query_engine(llm=llm, streaming=True, similarity_top_k=5)  # Pass the LLM to the query engine
 
         print("starting query...")
         start_time = datetime.now()

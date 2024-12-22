@@ -44,6 +44,7 @@ async def send_dm():
         if not users:
             print("No users found in database.")
             return
+        ai_insight_text = await ai_insight()
 
         for user in users:
             chat_id = user.get('chat_id')
@@ -53,7 +54,6 @@ async def send_dm():
                 
             is_paid = user.get('is_paid', False)
             username = user.get('username', 'User')
-            ai_insight_text = await ai_insight()
             if chat_id not in processed_chat_ids:
                 message = (
                     f"Hello {username}!\n\n"
@@ -81,6 +81,7 @@ async def stop_dm_service():
             pass
         dm_task = None
     print("DM service stopped successfully")
+
 async def all_token_data_update():
     print("💚all_token_data updating...")
     cursor = token_collection.find()  # Get regular cursor
@@ -122,9 +123,11 @@ async def periodic_dm():
             # await asyncio.sleep(10)
             
             print("DM service starting...")
+            print(datetime.now())
             await send_dm()
-            
+            print(datetime.now())
             await asyncio.sleep(600)
+            print(datetime.now())
             
         except asyncio.CancelledError:
             print("DM service cancelled")

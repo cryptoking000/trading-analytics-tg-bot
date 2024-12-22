@@ -11,7 +11,7 @@ import json
 from dotenv import load_dotenv
 load_dotenv()
 
-llm = OpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"))  # Use environment variable for API key
+llm = OpenAI(model="gpt-3.5-turbo", api_key=os.getenv("OPENAI_API_KEY"))  # Use environment variable for API key
 
 mongo_uri = os.getenv("MONGO_URI")
 db_name = "telegram_bot_db"

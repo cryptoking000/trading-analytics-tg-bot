@@ -52,7 +52,7 @@ async def ai_insight():
         print("starting query...")
         start_time = datetime.now()
         
-        response = await query_engine.query(prompt)  # Ensure this is awaited
+        response = query_engine.query(prompt)  # Ensure this is awaited
 
         # Measure response time
         end_time = datetime.now()

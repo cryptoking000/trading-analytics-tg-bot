@@ -122,7 +122,7 @@ async def periodic_dm():
             # print("Message collection and token data update completed")
             # await asyncio.sleep(10)
             
-            print("DM service starting...")
+            print("Periodic DM service starting...")
             print(datetime.now())
             await send_dm()
             print(datetime.now())

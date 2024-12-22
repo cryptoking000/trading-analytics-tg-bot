@@ -17,9 +17,9 @@ def get_token_keyboard(chain_id, token_address):
             InlineKeyboardButton("📈 View Chart", url=f"https://dexscreener.com/{chain_id}/{token_address}"),
             InlineKeyboardButton("💰 Buy Token", url=f"https://app.uniswap.org/#/swap?outputCurrency={token_address}")
         ],
-        [
-            InlineKeyboardButton("Subscribe", callback_data="subscribe")
-        ]
+        # [
+        #     InlineKeyboardButton("Subscribe", callback_data="subscribe")
+        # ]
     ]
     return InlineKeyboardMarkup(keyboard)
 

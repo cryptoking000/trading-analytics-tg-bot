@@ -2,7 +2,7 @@ import asyncio
 import telegram
 import requests
 import json
-from database_function import db
+from database_function import UserDatabaseManager
 import os
 from dotenv import load_dotenv
 from ai_insight import ai_insight
@@ -38,7 +38,7 @@ async def send_message(text, chat_id):
 async def send_dm():
     try:
         # Get all users from database
-        users = db.get_all_users()
+        users = UserDatabaseManager.get_all_users()
         processed_chat_ids = set()
 
         if not users:

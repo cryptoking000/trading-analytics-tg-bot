@@ -8,7 +8,7 @@ from telegram.ext import (
     filters,
 )
 from telegram.constants import ParseMode
-from recylce import start_dm_service, stop_dm_service
+from recycle import start_dm_service, stop_dm_service
 from subscribe import payment_start, button_handler
 from callback import address_message_handler
 import telegram

@@ -2,7 +2,7 @@ import asyncio
 import telegram
 import requests
 import json
-from database_function import UserDatabaseManager
+from database_function import db
 import os
 from dotenv import load_dotenv
 from ai_insight import ai_insight
@@ -13,8 +13,8 @@ from messagecollection import get_token_contract_data, message_collection
 load_dotenv()
 mongo_uri = os.getenv("MONGO_URI")
 mongo_client = MongoClient(mongo_uri)
-db = mongo_client["telegram_bot_db"]
-token_collection = db["token_contracts"]
+mongodb = mongo_client["telegram_bot_db"]
+token_collection = mongodb["token_contracts"]
 TOKEN = os.getenv("bot_token")
  # Default chat_id if no recent messages
 
@@ -38,7 +38,7 @@ async def send_message(text, chat_id):
 async def send_dm():
     try:
         # Get all users from database
-        users = UserDatabaseManager.get_all_users()
+        users = db.get_all_users()
         processed_chat_ids = set()
 
         if not users:
@@ -114,12 +114,12 @@ async def token_data_update(token_contract):
 async def periodic_dm():
     while True:
         try:
-            await asyncio.gather(
-                message_collection(),
-                all_token_data_update()
-            )
-            print("Message collection and token data update completed")
-            await asyncio.sleep(10)
+            # await asyncio.gather(
+            #     message_collection(),
+            #     all_token_data_update()
+            # )
+            # print("Message collection and token data update completed")
+            # await asyncio.sleep(10)
             
             print("DM service starting...")
             await send_dm()

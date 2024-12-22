@@ -102,8 +102,8 @@ async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def start_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         print("👉start_sendDm command----")
-        await start_dm_service()
         await update.message.reply_text("DM service started successfully!")
+        await start_dm_service()
 
     except Exception as e:
         logger.error(f"Error starting DM service: {e}")
@@ -113,6 +113,7 @@ async def stop_sendDm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     try:
         print("👉stop_sendDm command----")
         await stop_dm_service()
+        await update.message.reply_text("DM service stopped successfully!")
     except Exception as e:
         logger.error(f"Error stopping DM service: {e}")
         await update.message.reply_text("Failed to stop DM service. Please try again later.")

@@ -2,7 +2,6 @@ import asyncio
 import telegram
 import requests
 import json
-import asyncio
 from database_function import db
 import os
 from dotenv import load_dotenv
@@ -125,7 +124,7 @@ async def periodic_dm():
             
             print("Periodic DM service starting...")
             print(datetime.now())
-            await asyncio.run(send_dm())
+            await send_dm()
             print(datetime.now())
             await asyncio.sleep(600)
             print(datetime.now())

@@ -39,7 +39,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             username=update.message.from_user.username,
             last_active=last_active
         )
-        
         # Get user data asynchronously
         user_data =db.get_user(update.message.chat_id)
         expired_time = user_data.get("expired_time") if user_data else None
@@ -144,7 +143,7 @@ async def stop_recycle(update: Update, context: ContextTypes.DEFAULT_TYPE) ->Non
         await update.message.reply_text("Failed to stop DM service. Please try again later.")
 def main():
     try:
-        application = ApplicationBuilder().token(bot_token).build()
+        application = ApplicationBuilder().token(bot_token).concurrent_updates(True).build()
 
         # Add handlers
         application.add_handler(CommandHandler("hello", hello))

@@ -156,7 +156,7 @@ def main():
         application.add_handler(CommandHandler("stoprecycle", stop_recycle))
 
         application.add_handler(CallbackQueryHandler(button_handler))
-        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler))
+        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler, block=False))
     
         print("👟👟Bot is running...")
         logger.info("Bot is starting...")

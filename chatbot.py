@@ -21,8 +21,8 @@ async def chat_bot(input_message):
             you must write very short answer to the following question: {input_message}
             """
         
-        print("Documents loaded successfully.")
-        response = chat_engine.chat(prompt )
+        print("input loaded successfully.")
+        response =await asyncio.run(chat_engine.chat(prompt ))
         
         print("Query response received.----------------------")
         print(response)

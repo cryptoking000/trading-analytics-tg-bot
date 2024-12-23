@@ -19,7 +19,7 @@ async def chat_bot(input_message):
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
             You are a professional cryptocurrency advisor and investment expert.
             Please provide a concise, clear answer to the following question: {input_message}
-            Focus on general principles, strategies, and concepts rather than real-time market data.
+            Focus on question, general principles, strategies, and concepts rather than real-time market data.
             Keep your response brief but informative, using simple language.
             """            
         

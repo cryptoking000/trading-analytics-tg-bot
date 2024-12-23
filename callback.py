@@ -17,9 +17,9 @@ def get_token_keyboard(chain_id, token_address):
             InlineKeyboardButton("📈 View Chart", url=f"https://dexscreener.com/{chain_id}/{token_address}"),
             InlineKeyboardButton("💰 Buy Token", url=f"https://app.uniswap.org/#/swap?outputCurrency={token_address}")
         ],
-        [
-            InlineKeyboardButton("Subscribe", callback_data="subscribe")
-        ]
+        # [
+        #     InlineKeyboardButton("Subscribe", callback_data="subscribe")
+        # ]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -49,12 +49,10 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
                 # output_message = await tavily_search(input_message)
                 await update.message.chat.send_action(action="typing")
                 await update.message.reply_text("🤔 Processing your request, please wait...")
-                output_message = await chat_bot(input_message)           
-                await context.bot.send_message(
-                    chat_id=update.effective_chat.id,
-                    text=output_message,
-                    parse_mode=ParseMode.MARKDOWN
-                )  
+                output_message = await chat_bot(input_message) 
+                print(f"🤔",{output_message})          
+                await update.message.reply_text(text=output_message, parse_mode=ParseMode.MARKDOWN)
+               
             else:
                 pass
         else:#this is hex_data

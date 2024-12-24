@@ -8,7 +8,7 @@ import asyncio
 # from llama_index.vector_stores import FaissVectorStore
 load_dotenv()
 
-llm = OpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"), max_output_tokens=100)  # Use environment variable for API key
+llm = OpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"), max_output_tokens=500)  # Use environment variable for API key
 mongo_uri = os.getenv("MONGO_URI")
 db_name = "telegram_bot_db"
 collection_name = "token_contracts_analytics_data"
@@ -30,22 +30,34 @@ async def ai_insight():
     try:
          
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
-            You are a crypto advisor and professional researcher responsible for gathering information for daily reports.
-            Identify unusual token patterns, price and volume trends. Provide actionable insights in Markdown format.
+            As your dedicated crypto market analyst, I analyze token patterns, price movements, and market dynamics to provide actionable insights.
+    
+            Focus Areas:
+            1. Token Mention Patterns & Volume Correlations
+            2. Price Action Analysis
+            3. Social Sentiment & Market Momentum
+            4. Risk Assessment & Opportunities
 
-            Format:
-            Example: "Hi! I've noticed an unusual spike in mentions of token XYZ, which is associated with a 20% increase in volume over the last 24 hours. This token may be of interest to you!"
-            Example: "Token ABC is trending upward in mentions and liquidity. Based on historical patterns, similar tokens have seen a 15%-30% increase in the last 48 hours."
-            (Include relevant links like x, telegram and origin)
-            Write differently every time.
-            use data like mention time and number and token analytics needed all data
-            Write in Markdown format, within 500 characters.
-            """
+            Expected Output Format:
+            • "Alert: Token XYZ shows a significant correlation between mention frequency and price action. Recent data shows {mention_count} mentions in the last {time_period}, coinciding with a {percentage}% volume surge."
+    
+            • "Market Intel: token_name (contract_address) demonstrates unusual social momentum. Historical data suggests tokens with similar patterns have shown {percentage}% price movement within {timeframe}."
+
+            Key Deliverables:
+            - Token Name & Contract Address
+            - Mention Frequency & Timing
+            - Volume & Price Analytics
+            - Social Media Presence (X, Telegram, Discord)
+            - Risk Factors & Growth Indicators
+            - Comparative Historical Analysis
+    
+            Please provide insights in Markdown format, limited to 500 characters, with verifiable data points and actionable conclusions.
+            """           
        
         # vector_store = FaissVectorStore.from_documents(documents)
         # index = SummaryIndex.from_vector_store(vector_store)   
         index = SummaryIndex.from_documents(documents)
-        query_engine = index.as_query_engine(llm=llm, streaming=True, similarity_top_k=5)  # Pass the LLM to the query engine
+        query_engine = index.as_query_engine(llm=llm, streaming=True)  # Pass the LLM to the query engine
 
         print("starting query...",query_engine)
         start_time = datetime.now()

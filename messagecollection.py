@@ -30,7 +30,7 @@ with open('channel.json', 'r') as file:
 # Global variables
 message_count = 0
 channel_count = 0
-days_to_search = 10
+days_to_search = 15
 offset_date = datetime.now() - timedelta(days=days_to_search)
 start_number = 0  # Starting index for channel processing
 
@@ -181,6 +181,7 @@ def message_collection(message):
 
         # Check if arrays exceed max size and update accordingly
         if len(existing_entry["all_token_data"]["mentioned_message_dates"]) >= 20:
+            print("🧨🧨🧨🧨poped")
             token_collection.update_one(
                 {"_id": existing_entry["_id"]},
                 {

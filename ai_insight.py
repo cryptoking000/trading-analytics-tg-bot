@@ -11,13 +11,13 @@ load_dotenv()
 llm = OpenAI(model="gpt-3.5-turbo", api_key=os.getenv("OPENAI_API_KEY"), max_output_tokens=300)  # Use environment variable for API key
 mongo_uri = os.getenv("MONGO_URI")
 db_name = "telegram_bot_db"
-collection_name = "token_contracts"
+collection_name = "token_contracts_analytics_data"
 
 host = mongo_uri
 port = 27017
 
 # Specify the required fields using dot notation
-field_names = ["all_data","token_contracts"]
+field_names = ["all_token_data.token_analytics_data","all_token_data.mentioned_message_dates", "all_token_data.num_times_mentioned","num_times_all_mentioned","last_mention_date"]
 reader = SimpleMongoReader(host, port)
 
 documents = reader.load_data(

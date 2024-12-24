@@ -32,7 +32,7 @@ message_count = 0
 channel_count = 0
 days_to_search = 10
 offset_date = datetime.now() - timedelta(days=days_to_search)
-start_number = 1  # Starting index for channel processing
+start_number = 0  # Starting index for channel processing
 
 def extract_token_contracts(message_text):
     """Extract token contract address from message text."""

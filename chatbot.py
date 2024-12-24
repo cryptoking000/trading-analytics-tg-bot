@@ -17,12 +17,14 @@ async def chat_bot(input_message):
 
         chat_engine = SimpleChatEngine.from_defaults()
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
-            You are a crypto advisor .   
-            you must write very short answer to the following question: {input_message}
-            """
+            You are a professional cryptocurrency advisor and investment expert.
+            Please provide a concise, clear answer to the following question: {input_message}
+            Focus on question, general principles, strategies, and concepts rather than real-time market data.
+            Keep your response brief but informative, using simple language.
+            """            
         
-        print("Documents loaded successfully.")
-        response = chat_engine.chat(prompt )
+        print("input loaded successfully.")
+        response =chat_engine.chat(prompt )
         
         print("Query response received.----------------------")
         print(response)

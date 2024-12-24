@@ -20,7 +20,7 @@ mongo_uri = os.getenv("MONGO_URI")
 # Initialize MongoDB connection
 mongo_client = MongoClient(mongo_uri)
 db = mongo_client["telegram_bot_db"]
-token_collection = db["token_contracts"]
+token_collection = db["token_contracts_analytics_data"]
 
 # Load channel list
 with open('channel.json', 'r') as file:
@@ -30,9 +30,9 @@ with open('channel.json', 'r') as file:
 # Global variables
 message_count = 0
 channel_count = 0
-days_to_search = 10
+days_to_search = 15
 offset_date = datetime.now() - timedelta(days=days_to_search)
-start_number = 200  # Starting index for channel processing
+start_number = 0  # Starting index for channel processing
 
 def extract_token_contracts(message_text):
     """Extract token contract address from message text."""
@@ -74,7 +74,7 @@ def get_token_contract_data(token_contracts):
         # Extract token data
         token_data = {
             "token_contracts": token_contracts,
-            "analysis_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "analytics_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "chain": safe_get(pair_data, "chainId"),
             "dex_id": safe_get(pair_data, "dexId"),
             "pairAddress": safe_get(pair_data, "pairAddress"),
@@ -138,7 +138,7 @@ def message_collection(message):
     
     token_contracts = extract_token_contracts(message.text)
     if not token_contracts:
-        return
+        return False
         
     message_count += 1
     print("🎁", message_count, message.date, "🎈", token_contracts)
@@ -147,60 +147,68 @@ def message_collection(message):
         "token_contracts": token_contracts,
         "last_mention_date": message.date,
     }
-    
     token_contract_data = get_token_contract_data(token_contracts)
-    if not token_contract_data:
-        return
-        
+    # if not token_contract_data:
+    #     return True
+
     existing_entry = token_collection.find_one({"token_contracts": {"$in": [message_dict["token_contracts"]]}})
-    
+
     if not existing_entry:
         # Insert new entry
         token_collection.insert_one({
             **message_dict,
-            "num_times_mentioned": 1,
+            "num_times_all_mentioned": 1,
             "last_mention_date": message.date,
-            "all_data": {
-                "message_date(0)": message.date,
-                "num_times_mentioned(0)": 1,
-                "token_contract_data(0)": token_contract_data,
+            "all_token_data": {
+                "mentioned_message_dates": [message.date],
+                "num_times_mentioned": [1],
+                "token_analytics_data": [token_contract_data],
             }
         })
         print("🧨 New token entry created")
-        
     elif existing_entry["last_mention_date"].strftime("%Y-%m-%d %H:%M:%S") != message.date.strftime("%Y-%m-%d %H:%M:%S"):
         # Update existing entry
         print("🧨🧨 Updating existing entry")
-        num_times_mentioned = existing_entry["num_times_mentioned"] + 1
-        current_hour = datetime.now().hour
-        
+
         # Update base fields
         token_collection.update_one(
             {"_id": existing_entry["_id"]},
             {"$set": {
-                "num_times_mentioned": num_times_mentioned,
+                "num_times_all_mentioned": existing_entry["num_times_all_mentioned"] + 1,
                 "last_mention_date": message.date,
             }}
         )
-        
-        # Update historical data
+
+        # Check if arrays exceed max size and update accordingly
+        if len(existing_entry["all_token_data"]["mentioned_message_dates"]) >= 20:
+            print("🧨🧨🧨🧨poped")
+            token_collection.update_one(
+                {"_id": existing_entry["_id"]},
+                {
+                    "$pop": {
+                        "all_token_data.mentioned_message_dates": -1,
+                        "all_token_data.num_times_mentioned": -1,
+                        "all_token_data.token_analytics_data": -1
+                    }
+                }
+            )
+
+        # Update historical data arrays
         token_collection.update_one(
             {"_id": existing_entry["_id"]},
-            {"$set": {
-                "all_data": {
-                    **existing_entry["all_data"],
-                    f"message_date({current_hour})": message.date,
-                    f"num_times_mentioned({current_hour})": num_times_mentioned,
-                    f"token_contract_data({current_hour})": token_contract_data,
-                }
+            {"$push": {
+                "all_token_data.mentioned_message_dates": message.date,
+                "all_token_data.num_times_mentioned": existing_entry["all_token_data"]["num_times_mentioned"][-1] + 1,
+                "all_token_data.token_analytics_data": token_contract_data
             }}
         )
-        print("Successfully updated token data")
 
+
+        print("Successfully updated token data")
 async def main():
-    """Main function to process messages from Telegram channels."""
+    """Main function to process messages from Telegram channels."""    
     global channel_count
-    
+
     async with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
         for channel_username in channel_list[start_number:]:
             channel_count += 1
@@ -231,7 +239,7 @@ async def main():
             except Exception as e:
                 print(f"Error processing channel {channel_username}: {e}")
 
-# if __name__ == "__main__":
-#     asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
     print("🎁 Offset date:", offset_date)
     print("🎁 Finished at:", datetime.now())

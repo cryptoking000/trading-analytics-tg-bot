@@ -4,19 +4,20 @@ from llama_index.llms.openai import OpenAI
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+import asyncio
 # from llama_index.vector_stores import FaissVectorStore
 load_dotenv()
 
-llm = OpenAI(model="gpt-3.5-turbo", api_key=os.getenv("OPENAI_API_KEY"), max_output_tokens=300)  # Use environment variable for API key
+llm = OpenAI(model="GPT-4o-Mini", api_key=os.getenv("OPENAI_API_KEY"), max_output_tokens=100)  # Use environment variable for API key
 mongo_uri = os.getenv("MONGO_URI")
 db_name = "telegram_bot_db"
-collection_name = "token_contracts"
+collection_name = "token_contracts_analytics_data"
 
 host = mongo_uri
 port = 27017
 
 # Specify the required fields using dot notation
-field_names = ["all_data","token_contracts"]
+field_names = ["all_token_data","num_times_all_mentioned","last_mention_date"]
 reader = SimpleMongoReader(host, port)
 
 documents = reader.load_data(
@@ -29,16 +30,16 @@ async def ai_insight():
     try:
          
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
-            You are a crypto advisor and expert researcher tasked with gathering information for a daily report.  
-            Identify unusual token patterns, price, and volume trends. Provide actionable insights in markdown format.
+            You are a crypto advisor and professional researcher responsible for gathering information for daily reports.
+            Identify unusual token patterns, price and volume trends. Provide actionable insights in Markdown format.
 
-            format:
-            Example: “Hello! I noticed an unusual surge in mentions of token XYZ, which correlates with a 20% volume increase in the past 24 hours. This token might be worth your attention!”
-            Example: “Token ABC is showing an upward trend in mentions and liquidity. Based on past patterns, similar tokens experienced a 15%-30% appreciation within 48 hours.”
-            (please Involve link related in)
+            Format:
+            Example: "Hi! I've noticed an unusual spike in mentions of token XYZ, which is associated with a 20% increase in volume over the last 24 hours. This token may be of interest to you!"
+            Example: "Token ABC is trending upward in mentions and liquidity. Based on historical patterns, similar tokens have seen a 15%-30% increase in the last 48 hours."
+            (Include relevant links like x, telegram and origin)
             Write differently every time.
-
-            write in markdown format within 500 characters.
+            use data like mention time and number and token analytics needed all data
+            Write in Markdown format, within 500 characters.
             """
        
         # vector_store = FaissVectorStore.from_documents(documents)
@@ -46,7 +47,7 @@ async def ai_insight():
         index = SummaryIndex.from_documents(documents)
         query_engine = index.as_query_engine(llm=llm, streaming=True, similarity_top_k=5)  # Pass the LLM to the query engine
 
-        print("starting query...")
+        print("starting query...",query_engine)
         start_time = datetime.now()
         
         response = query_engine.query(prompt)  # Ensure this is awaited
@@ -64,3 +65,4 @@ async def ai_insight():
 
 # Usage example
 # asyncio.run(chat_bot("What is the highest token price change in the last 24 hours?"))
+asyncio.run(ai_insight())   

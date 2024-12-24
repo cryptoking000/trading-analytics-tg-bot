@@ -74,7 +74,7 @@ def get_token_contract_data(token_contracts):
         # Extract token data
         token_data = {
             "token_contracts": token_contracts,
-            "token_analytics_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "analytics_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "chain": safe_get(pair_data, "chainId"),
             "dex_id": safe_get(pair_data, "dexId"),
             "pairAddress": safe_get(pair_data, "pairAddress"),
@@ -141,15 +141,15 @@ def message_collection(message):
         return False
         
     message_count += 1
-    print("🎁", message_count, message.date.strftime("%Y-%m-%d %H:%M:%S"), "🎈", token_contracts)
+    print("🎁", message_count, message.date, "🎈", token_contracts)
     
     message_dict = {
         "token_contracts": token_contracts,
-        "last_mention_date": message.date.strftime("%Y-%m-%d %H:%M:%S"),
+        "last_mention_date": message.date,
     }
     token_contract_data = get_token_contract_data(token_contracts)
-    if not token_contract_data:
-        return True
+    # if not token_contract_data:
+    #     return True
 
     existing_entry = token_collection.find_one({"token_contracts": {"$in": [message_dict["token_contracts"]]}})
 
@@ -158,9 +158,9 @@ def message_collection(message):
         token_collection.insert_one({
             **message_dict,
             "num_times_all_mentioned": 1,
-            "last_mention_date": message.date.strftime("%Y-%m-%d %H:%M:%S"),
+            "last_mention_date": message.date,
             "all_token_data": {
-                "mentioned_message_dates": [message.date.strftime("%Y-%m-%d %H:%M:%S")],
+                "mentioned_message_dates": [message.date],
                 "num_times_mentioned": [1],
                 "token_analytics_data": [token_contract_data],
             }
@@ -175,7 +175,7 @@ def message_collection(message):
             {"_id": existing_entry["_id"]},
             {"$set": {
                 "num_times_all_mentioned": existing_entry["num_times_all_mentioned"] + 1,
-                "last_mention_date": message.date.strftime("%Y-%m-%d %H:%M:%S"),
+                "last_mention_date": message.date,
             }}
         )
 
@@ -191,19 +191,19 @@ def message_collection(message):
                     }
                 }
             )
-        print("🧨🧨🧨 Popped arrays")
+
         # Update historical data arrays
         token_collection.update_one(
             {"_id": existing_entry["_id"]},
             {"$push": {
-                "all_token_data.mentioned_message_dates": message.date.strftime("%Y-%m-%d %H:%M:%S"),
+                "all_token_data.mentioned_message_dates": message.date,
                 "all_token_data.num_times_mentioned": existing_entry["all_token_data"]["num_times_mentioned"][-1] + 1,
                 "all_token_data.token_analytics_data": token_contract_data
             }}
         )
-        print("Successfully updated token data")
-    return True
 
+
+        print("Successfully updated token data")
 async def main():
     """Main function to process messages from Telegram channels."""    
     global channel_count
@@ -214,23 +214,11 @@ async def main():
             print("🎁🎁🎁🎁", channel_count, "/", len(channel_list), channel_username)
             
             try:
-                found_token = False
                 async for message in client.iter_messages(channel_username):
                     if message.date.date() >= offset_date.date():
-                        if message_collection(message):
-                            found_token = True
+                        message_collection(message)
                     else:
                         break
-                
-                if not found_token:
-                    print(f"No token found in channel: {channel_username}")
-                    with open('channel.json', 'r+') as file:
-                        channel_data = json.load(file)
-                        if channel_username in channel_data['channels']:
-                            channel_data['channels'].remove(channel_username)
-                            file.seek(0)
-                            json.dump(channel_data, file, indent=4)
-                            file.truncate()
                         
             except telethon.errors.rpcerrorlist.FloodWaitError as e:
                 print(f'Rate limit exceeded. Sleeping for {e.seconds} seconds')

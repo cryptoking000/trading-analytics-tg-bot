@@ -138,7 +138,7 @@ def message_collection(message):
     
     token_contracts = extract_token_contracts(message.text)
     if not token_contracts:
-        return
+        return False
         
     message_count += 1
     print("🎁", message_count, message.date.strftime("%Y-%m-%d %H:%M:%S"), "🎈", token_contracts)
@@ -149,7 +149,7 @@ def message_collection(message):
     }
     token_contract_data = get_token_contract_data(token_contracts)
     if not token_contract_data:
-        return
+        return True
 
     existing_entry = token_collection.find_one({"token_contracts": {"$in": [message_dict["token_contracts"]]}})
 
@@ -201,9 +201,9 @@ def message_collection(message):
                 "all_token_data.token_analytics_data": token_contract_data
             }}
         )
-
-
         print("Successfully updated token data")
+    return True
+
 async def main():
     """Main function to process messages from Telegram channels."""    
     global channel_count
@@ -214,11 +214,23 @@ async def main():
             print("🎁🎁🎁🎁", channel_count, "/", len(channel_list), channel_username)
             
             try:
+                found_token = False
                 async for message in client.iter_messages(channel_username):
                     if message.date.date() >= offset_date.date():
-                        message_collection(message)
+                        if message_collection(message):
+                            found_token = True
                     else:
                         break
+                
+                if not found_token:
+                    print(f"No token found in channel: {channel_username}")
+                    with open('channel.json', 'r+') as file:
+                        channel_data = json.load(file)
+                        if channel_username in channel_data['channels']:
+                            channel_data['channels'].remove(channel_username)
+                            file.seek(0)
+                            json.dump(channel_data, file, indent=4)
+                            file.truncate()
                         
             except telethon.errors.rpcerrorlist.FloodWaitError as e:
                 print(f'Rate limit exceeded. Sleeping for {e.seconds} seconds')

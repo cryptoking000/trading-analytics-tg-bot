@@ -74,7 +74,7 @@ def get_token_contract_data(token_contracts):
         # Extract token data
         token_data = {
             "token_contracts": token_contracts,
-            "analysis_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "token_analytics_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "chain": safe_get(pair_data, "chainId"),
             "dex_id": safe_get(pair_data, "dexId"),
             "pairAddress": safe_get(pair_data, "pairAddress"),
@@ -141,11 +141,11 @@ def message_collection(message):
         return
         
     message_count += 1
-    print("🎁", message_count, message.date, "🎈", token_contracts)
+    print("🎁", message_count, message.date.strftime("%Y-%m-%d %H:%M:%S"), "🎈", token_contracts)
     
     message_dict = {
         "token_contracts": token_contracts,
-        "last_mention_date": message.date,
+        "last_mention_date": message.date.strftime("%Y-%m-%d %H:%M:%S"),
     }
     token_contract_data = get_token_contract_data(token_contracts)
     if not token_contract_data:
@@ -158,9 +158,9 @@ def message_collection(message):
         token_collection.insert_one({
             **message_dict,
             "num_times_all_mentioned": 1,
-            "last_mention_date": message.date,
+            "last_mention_date": message.date.strftime("%Y-%m-%d %H:%M:%S"),
             "all_token_data": {
-                "mentioned_message_dates": [message.date],
+                "mentioned_message_dates": [message.date.strftime("%Y-%m-%d %H:%M:%S")],
                 "num_times_mentioned": [1],
                 "token_analytics_data": [token_contract_data],
             }
@@ -175,21 +175,35 @@ def message_collection(message):
             {"_id": existing_entry["_id"]},
             {"$set": {
                 "num_times_all_mentioned": existing_entry["num_times_all_mentioned"] + 1,
-                "last_mention_date": message.date,
+                "last_mention_date": message.date.strftime("%Y-%m-%d %H:%M:%S"),
             }}
         )
 
+        # Check if arrays exceed max size and update accordingly
+        if len(existing_entry["all_token_data"]["mentioned_message_dates"]) >= 20:
+            token_collection.update_one(
+                {"_id": existing_entry["_id"]},
+                {
+                    "$pop": {
+                        "all_token_data.mentioned_message_dates": -1,
+                        "all_token_data.num_times_mentioned": -1,
+                        "all_token_data.token_analytics_data": -1
+                    }
+                }
+            )
+        print("🧨🧨🧨 Popped arrays")
         # Update historical data arrays
         token_collection.update_one(
             {"_id": existing_entry["_id"]},
             {"$push": {
-                "all_token_data.mentioned_message_dates": message.date,
+                "all_token_data.mentioned_message_dates": message.date.strftime("%Y-%m-%d %H:%M:%S"),
                 "all_token_data.num_times_mentioned": existing_entry["all_token_data"]["num_times_mentioned"][-1] + 1,
                 "all_token_data.token_analytics_data": token_contract_data
             }}
         )
-        print("Successfully updated token data")
 
+
+        print("Successfully updated token data")
 async def main():
     """Main function to process messages from Telegram channels."""    
     global channel_count

@@ -31,23 +31,18 @@ async def ai_insight():
          
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
             As your dedicated crypto market analyst, I analyze token patterns, price movements, and market dynamics to provide actionable insights.
-    
             Focus Areas:
-            1. Token Mention Patterns & Volume Correlations
-            2. Price Action Analysis
-            3. Social Sentiment & Market Momentum
-            4. Risk Assessment & Opportunities
-
+            -Token Mention Patterns & Volume Correlations
+            -Price Action Analysis
+            -Risk Assessment & Opportunities
             Expected Output Format:
-            • "Alert: Token XYZ shows a significant correlation between mention frequency and price action. Recent data shows {mention_count} mentions in the last {time_period}, coinciding with a {percentage}% volume surge."
-    
-            • "Market Intel: token_name (contract_address) demonstrates unusual social momentum. Historical data suggests tokens with similar patterns have shown {percentage}% price movement within {timeframe}."
-
+            • "Alert: [Token name] shows a significant correlation between mention frequency and price action. Recent data shows (mention_count) mentions in the last (time_period), coinciding with a (percentage)% volume surge."
+            • "Market Intel: [token_name] [contract_address] demonstrates unusual social momentum. Historical data suggests tokens with similar patterns have shown (percentage)% price movement within (timeframe)."
             Key Deliverables:
-            - Token Name & Contract Address
+            - Token Name & Cnotract Address
             - Mention Frequency & Timing
             - Volume & Price Analytics
-            - Social Media Presence (X, Telegram, Discord)
+            - Social Media Presence (X, Telegram, original)
             - Risk Factors & Growth Indicators
             - Comparative Historical Analysis
     

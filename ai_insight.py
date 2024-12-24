@@ -8,7 +8,7 @@ import asyncio
 # from llama_index.vector_stores import FaissVectorStore
 load_dotenv()
 
-llm = OpenAI(model="GPT-4o-Mini", api_key=os.getenv("OPENAI_API_KEY"), max_output_tokens=100)  # Use environment variable for API key
+llm = OpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"), max_output_tokens=100)  # Use environment variable for API key
 mongo_uri = os.getenv("MONGO_URI")
 db_name = "telegram_bot_db"
 collection_name = "token_contracts_analytics_data"

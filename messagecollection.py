@@ -32,7 +32,7 @@ message_count = 0
 channel_count = 0
 days_to_search = 15
 offset_date = datetime.now() - timedelta(days=days_to_search)
-start_number = 0  # Starting index for channel processing
+start_number = 12  # Starting index for channel processing
 
 def extract_token_contracts(message_text):
     """Extract token contract address from message text."""
@@ -203,23 +203,38 @@ def message_collection(message):
             }}
         )
 
-
         print("Successfully updated token data")
+    return True
+
 async def main():
     """Main function to process messages from Telegram channels."""    
     global channel_count
 
     async with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
+        channels_to_remove = []
+        
         for channel_username in channel_list[start_number:]:
             channel_count += 1
             print("🎁🎁🎁🎁", channel_count, "/", len(channel_list), channel_username)
             
             try:
+                has_token = False
                 async for message in client.iter_messages(channel_username):
                     if message.date.date() >= offset_date.date():
-                        message_collection(message)
+                        if message_collection(message):
+                            has_token = True
                     else:
                         break
+                
+                if not has_token:
+                    with open('channel.json', 'r+') as file:
+                        channel_data = json.load(file)
+                        if channel_username in channel_data['channels']:
+                            channel_data['channels'].remove(channel_username)
+                            print(f"remove❌: {channel_username}")
+                            file.seek(0)
+                            json.dump(channel_data, file, indent=4)
+                            file.truncate()
                         
             except telethon.errors.rpcerrorlist.FloodWaitError as e:
                 print(f'Rate limit exceeded. Sleeping for {e.seconds} seconds')
@@ -227,18 +242,21 @@ async def main():
                 
             except telethon.errors.rpcerrorlist.ChannelPrivateError:
                 print(f"Access denied to channel: {channel_username}")
-                # Remove private channel from list
                 with open('channel.json', 'r+') as file:
                     channel_data = json.load(file)
                     if channel_username in channel_data['channels']:
                         channel_data['channels'].remove(channel_username)
+                        print(f"remove❌private channel-: {channel_username}")
                         file.seek(0)
                         json.dump(channel_data, file, indent=4)
                         file.truncate()
-                        
+                
+                
             except Exception as e:
                 print(f"Error processing channel {channel_username}: {e}")
-
+        
+     
+       
 if __name__ == "__main__":
     asyncio.run(main())
     print("🎁 Offset date:", offset_date)

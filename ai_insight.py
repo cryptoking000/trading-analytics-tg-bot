@@ -4,6 +4,7 @@ from llama_index.llms.openai import OpenAI
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+import asyncio
 # from llama_index.vector_stores import FaissVectorStore
 load_dotenv()
 
@@ -46,7 +47,7 @@ async def ai_insight():
         index = SummaryIndex.from_documents(documents)
         query_engine = index.as_query_engine(llm=llm, streaming=True, similarity_top_k=5)  # Pass the LLM to the query engine
 
-        print("starting query...")
+        print("starting query...",query_engine)
         start_time = datetime.now()
         
         response = query_engine.query(prompt)  # Ensure this is awaited
@@ -64,3 +65,4 @@ async def ai_insight():
 
 # Usage example
 # asyncio.run(chat_bot("What is the highest token price change in the last 24 hours?"))
+asyncio.run(ai_insight())   

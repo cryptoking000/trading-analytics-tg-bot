@@ -5,7 +5,10 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 import asyncio
-# from llama_index.vector_stores import FaissVectorStore
+from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
+
+from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
+import tiktoken
 load_dotenv()
 
 llm = OpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"), max_output_tokens=500)  # Use environment variable for API key
@@ -20,56 +23,69 @@ port = 27017
 field_names = ["all_token_data","num_times_all_mentioned","last_mention_date"]
 reader = SimpleMongoReader(host, port)
 
+tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo").encode
+
+# Create a TokenCountingHandler instance
+token_counter = TokenCountingHandler(tokenizer=tokenizer, verbose=True)
+
+# Set up the callback manager with the token counter
+callback_manager = CallbackManager([token_counter])
+# Load documents (adjust the path as necessary)
+
+
 documents = reader.load_data(
-    db_name, collection_name, field_names
+            db_name, collection_name, field_names
 )
 
 
+
 async def ai_insight():
-   
+
     try:
-         
-        prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
-            As your dedicated crypto market analyst, I analyze token patterns, price movements, and market dynamics to provide actionable insights.
-            Focus Areas:
-            -Token Mention Patterns & Volume Correlations
-            -Price Action Analysis
-            -Risk Assessment & Opportunities
-            Expected Output Format:
-            • "Alert: [Token name] shows a significant correlation between mention frequency and price action. Recent data shows (mention_count) mentions in the last (time_period), coinciding with a (percentage)% volume surge."
-            • "Market Intel: [token_name] [contract_address] demonstrates unusual social momentum. Historical data suggests tokens with similar patterns have shown (percentage)% price movement within (timeframe)."
-            Key Deliverables:
-            - Token Name & Cnotract Address
-            - Mention Frequency & Timing
-            - Volume & Price Analytics
-            - Social Media Presence (X, Telegram, original)
-            - Risk Factors & Growth Indicators
-            - Comparative Historical Analysis
+        
     
-            Please provide insights in Markdown format, limited to 500 characters, with verifiable data points and actionable conclusions.
-            """           
-       
-        # vector_store = FaissVectorStore.from_documents(documents)
-        # index = SummaryIndex.from_vector_store(vector_store)   
-        index = SummaryIndex.from_documents(documents)
+        prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
+          You are a crypto advisor and professional researcher responsible for gathering information for daily reports.
+            Identify unusual token patterns, price and volume trends. Provide actionable insights in Markdown format.
+
+            Reference to Format:
+            Example: "Hi! I've noticed an unusual spike in mentions of [token name], which is associated with a [percent]% increase in volume over the last [hours]. This token may be of interest to you!"
+            Example: "[Token name] is trending upward in mentions and liquidity. Based on historical patterns, similar tokens have seen a [percent]%-[percent]% increase in the last [hours]."
+            (Include relevant links like x, telegram and origin)
+            must write differently every time.
+            Use data like mention time and number.
+            Write in Markdown format, with in 500 characters.
+            """
+             
+
+        index = SummaryIndex.from_documents(documents, callback_manager=callback_manager)
         query_engine = index.as_query_engine(llm=llm, streaming=True)  # Pass the LLM to the query engine
 
         print("starting query...",query_engine)
         start_time = datetime.now()
-        
+
         response = query_engine.query(prompt)  # Ensure this is awaited
+
+        # Get performance metrics
+       
+        # Print token counts
+        print("Embedding Tokens:", token_counter.total_embedding_token_count)
+        print("LLM Prompt Tokens:", token_counter.prompt_llm_token_count)
+        print("LLM Completion Tokens:", token_counter.completion_llm_token_count)
+        print("Total LLM Token Count:", token_counter.total_llm_token_count)
+
+        # Optionally reset counts if needed
+        token_counter.reset_counts()
 
         # Measure response time
         end_time = datetime.now()
         print(f"Query response received in {end_time - start_time} seconds.")
-        # print(f"Querying for-----------------------: {query_text}")
         print(f"Query response received.-----------:{response}")
         return response
-       
+
     except Exception as e:
         print(f"An error occurred: {e}")
         return "An error occurred while processing your request."
 
 # Usage example
-# asyncio.run(chat_bot("What is the highest token price change in the last 24 hours?"))
-asyncio.run(ai_insight())   
+asyncio.run(ai_insight())

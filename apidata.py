@@ -146,7 +146,7 @@ async def fetch_trading_pair_data(pair_address):
             f"📈 24H Change: `{format_number(twentyfour_hour_change)}%` | Vol: `${format_number(twentyfour_hour_volume)}`\n"
             f"📊 1H Trades: 🟢`{format_number(one_hour_buy_number)}` | 🔴`{format_number(one_hour_sell_number)}`\n"
             f"📊 24H Trades: 🟢`{format_number(twentyfour_hour_buy_number)}` | 🔴`{format_number(twentyfour_hour_sell_number)}`\n\n"
-            # f"🖨️Mint:{'✅' if minted else '❌'} | LP 🔥({format_number(lp_burn_amount)}%)"
+            f"🖨️Mint:✅ | LP: 🔥"
             f"🔗 Links: [📊Chart]({banner_url}) [💬TG]({telegram_url}) [🌐Web]({origin_url}) [🐦Twitter]({twitter_url})\n"
             f"\n`{pair_address}`\n"
             f"\n📌 *Analysis Tools*\n"

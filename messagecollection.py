@@ -28,11 +28,12 @@ with open('channel.json', 'r') as file:
     channel_list = channel_data['channels']
 
 # Global variables
+mention_flag = 0
 message_count = 0
 channel_count = 0
 days_to_search = 15
 offset_date = datetime.now() - timedelta(days=days_to_search)
-start_number = 12  # Starting index for channel processing
+start_number = 0  # Starting index for channel processing
 
 def extract_token_contracts(message_text):
     """Extract token contract address from message text."""
@@ -58,7 +59,7 @@ def get_token_contract_data(token_contracts):
             return None
             
         pair_data = pair_info[0]
-        print("Successfully retrieved pair data")
+        print("💚Successfully retrieved pair data")
         
         def safe_get(obj, *keys, default="N/A"):
             """Safely retrieve nested dictionary values."""
@@ -73,52 +74,22 @@ def get_token_contract_data(token_contracts):
 
         # Extract token data
         token_data = {
-            "token_contracts": token_contracts,
+            "token_address": token_contracts,
+            "base_token_address": safe_get(pair_data, "baseToken", "address"),
+            "base_token_symbol": safe_get(pair_data, "baseToken", "symbol"),
             "analytics_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "dex_url": safe_get(pair_data, "url"),
             "chain": safe_get(pair_data, "chainId"),
             "dex_id": safe_get(pair_data, "dexId"),
-            "pairAddress": safe_get(pair_data, "pairAddress"),
-            "base_token_address": safe_get(pair_data, "baseToken", "address"),
-            "quote_token_address": safe_get(pair_data, "quoteToken", "address"),
-            "base_token_name": safe_get(pair_data, "baseToken", "name", default="Unknown"),
-            "quote_token_name": safe_get(pair_data, "quoteToken", "name", default="Unknown"),
-            "base_token_symbol": safe_get(pair_data, "baseToken", "symbol"),
             "quote_token_symbol": safe_get(pair_data, "quoteToken", "symbol"),
-            "price_native": safe_get(pair_data, "priceNative"),
-            "price_usd": safe_get(pair_data, "priceUsd"),
-            "fdv": safe_get(pair_data, "fdv"),
-            "liquidity": {
-                "usd": safe_get(pair_data, "liquidity", "usd"),
-                "base": safe_get(pair_data, "liquidity", "base"),
-                "quote": safe_get(pair_data, "liquidity", "quote")
-            },
-            "volume": {
-                "h24": safe_get(pair_data, "volume", "h24"),
-                "h6": safe_get(pair_data, "volume", "h6"),
-                "h1": safe_get(pair_data, "volume", "h1"),
-                "m5": safe_get(pair_data, "volume", "m5")
-            },
-            "price_change": {
-                "h1": safe_get(pair_data, "priceChange", "h1"),
-                "h24": safe_get(pair_data, "priceChange", "h24"),
-                "h6": safe_get(pair_data, "priceChange", "h6"),
-                "m5": safe_get(pair_data, "priceChange", "m5")
-            },
-            "txns": {
-                "buys": {
-                    "h1": safe_get(pair_data, "txns", "h1", "buys"),
-                    "h24": safe_get(pair_data, "txns", "h24", "buys"),
-                    "h6": safe_get(pair_data, "txns", "h6", "buys"),
-                    "m5": safe_get(pair_data, "txns", "m5", "buys")
-                },
-                "sells": {
-                    "h1": safe_get(pair_data, "txns", "h1", "sells"),
-                    "h24": safe_get(pair_data, "txns", "h24", "sells"),
-                    "h6": safe_get(pair_data, "txns", "h6", "sells"),
-                    "m5": safe_get(pair_data, "txns", "m5", "sells")
-                }
-            },
-            "token_age": safe_get(pair_data, "pairCreatedAt"),
+            "token_price_usd": safe_get(pair_data, "priceUsd"),
+            "liquidity_usd": safe_get(pair_data, "liquidity", "usd"),
+            "volume_h24": safe_get(pair_data, "volume", "h24"),
+            "price_change_h24": safe_get(pair_data, "priceChange", "h24"),
+            "price_change_h1": safe_get(pair_data, "priceChange", "h1"),   
+            "txns_buys_h24": safe_get(pair_data, "txns", "h24", "buys"),
+            "txns_sells_h24": safe_get(pair_data, "txns", "h24", "sells"),
+             "pairCreatedAt": safe_get(pair_data, "pairCreatedAt"),
             "origin_url": next((website.get("url") for website in safe_get(pair_data, "info", "websites", default=[]) 
                               if website.get("label") == "Website"), "#"),
             "telegram_url": next((social.get("url") for social in safe_get(pair_data, "info", "socials", default=[])
@@ -131,11 +102,27 @@ def get_token_contract_data(token_contracts):
     except requests.exceptions.RequestException as e:
         print(f"Error fetching token data: {e}")
         return None
-
+async def all_day_mention_initialization():
+    """Initialize mention data for all days."""
+    try:
+        print("🎈initializing....")
+        for token_doc in token_collection.find():
+            token_contracts = token_doc.get("token_contracts")
+            token_contract_data = get_token_contract_data(token_contracts)
+            token_collection.update_one(
+                {"_id": token_doc["_id"]},
+                {
+                    "$set": {"daily_mentions": 0},
+                    "$push": {"token_analytics_data": token_contract_data if token_contract_data else ""}
+                }
+            )
+        print("🎈initialization complete")
+    except Exception as e:
+        print(f"Error resetting day mentions: {e}")
 def message_collection(message):
     """Process and store message data containing token contracts."""
     global message_count
-    
+    global mention_flag
     token_contracts = extract_token_contracts(message.text)
     if not token_contracts:
         return False
@@ -145,11 +132,11 @@ def message_collection(message):
     
     message_dict = {
         "token_contracts": token_contracts,
-        "last_mention_date": message.date,
+        "mentioned_lastdate": message.date,
     }
     token_contract_data = get_token_contract_data(token_contracts)
-    # if not token_contract_data:
-    #     return True
+    if not token_contract_data:
+        pass
 
     existing_entry = token_collection.find_one({"token_contracts": {"$in": [message_dict["token_contracts"]]}})
 
@@ -157,62 +144,53 @@ def message_collection(message):
         # Insert new entry
         token_collection.insert_one({
             **message_dict,
-            "num_times_all_mentioned": 1,
-            "last_mention_date": message.date,
-            "all_token_data": {
-                "mentioned_message_dates": [message.date],
-                "num_times_mentioned": [1],
-                "token_analytics_data": [token_contract_data],
-            }
+            "total_mentions": 1,
+            "mentioned_lastdate": message.date,
+            "daily_mentions": 1,
+            "token_analytics_data": [token_contract_data] if token_contract_data else [""],
         })
         print("🧨 New token entry created")
-    elif existing_entry["last_mention_date"].strftime("%Y-%m-%d %H:%M:%S") != message.date.strftime("%Y-%m-%d %H:%M:%S"):
+    # elif existing_entry["mentioned_lastdate"].strftime("%Y-%m-%d %H:%M:%S") != message.date.strftime("%Y-%m-%d %H:%M:%S"):
         # Update existing entry
+    else:
         print("🧨🧨 Updating existing entry")
 
         # Update base fields
         token_collection.update_one(
             {"_id": existing_entry["_id"]},
             {"$set": {
-                "num_times_all_mentioned": existing_entry["num_times_all_mentioned"] + 1,
-                "last_mention_date": message.date,
+                "total_mentions": existing_entry["total_mentions"] + 1,
+                "mentioned_lastdate": message.date,
+                "daily_mentions": existing_entry["daily_mentions"] + 1
             }}
-        )
-
-        # Check if arrays exceed max size and update accordingly
-        if len(existing_entry["all_token_data"]["mentioned_message_dates"]) >= 20:
-            print("🧨🧨🧨🧨poped")
+        )       
+        # if mention_flag == 0:#run once a day(main)
+            # Check if arrays exceed max size and update accordingly
+        if len(existing_entry.get("token_analytics_data", [])) > 3:
+            print("🧨🧨🧨🧨🧨poped")
             token_collection.update_one(
                 {"_id": existing_entry["_id"]},
                 {
                     "$pop": {
-                        "all_token_data.mentioned_message_dates": -1,
-                        "all_token_data.num_times_mentioned": -1,
-                        "all_token_data.token_analytics_data": -1
+                        "token_analytics_data": -1
                     }
                 }
             )
-
-        # Update historical data arrays
-        token_collection.update_one(
-            {"_id": existing_entry["_id"]},
-            {"$push": {
-                "all_token_data.mentioned_message_dates": message.date,
-                "all_token_data.num_times_mentioned": existing_entry["all_token_data"]["num_times_mentioned"][-1] + 1,
-                "all_token_data.token_analytics_data": token_contract_data
-            }}
-        )
-
-        print("Successfully updated token data")
+            # Update historical data arrays
+            
+            
+    mention_flag = 1
     return True
 
 async def main():
     """Main function to process messages from Telegram channels."""    
     global channel_count
-
-    async with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
-        channels_to_remove = []
+    global mention_flag 
+    mention_flag = 0
+    
+    await all_day_mention_initialization()
         
+    async with TelegramClient(session_name, TELEGRAM_API_ID, TELEGRAM_API_HASH) as client:
         for channel_username in channel_list[start_number:]:
             channel_count += 1
             print("🎁🎁🎁🎁", channel_count, "/", len(channel_list), channel_username)
@@ -238,7 +216,7 @@ async def main():
                         
             except telethon.errors.rpcerrorlist.FloodWaitError as e:
                 print(f'Rate limit exceeded. Sleeping for {e.seconds} seconds')
-                time.sleep(e.seconds)
+                await asyncio.sleep(e.seconds)
                 
             except telethon.errors.rpcerrorlist.ChannelPrivateError:
                 print(f"Access denied to channel: {channel_username}")
@@ -251,12 +229,9 @@ async def main():
                         json.dump(channel_data, file, indent=4)
                         file.truncate()
                 
-                
             except Exception as e:
                 print(f"Error processing channel {channel_username}: {e}")
-        
-     
-       
+
 if __name__ == "__main__":
     asyncio.run(main())
     print("🎁 Offset date:", offset_date)

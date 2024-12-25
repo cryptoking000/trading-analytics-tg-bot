@@ -21,7 +21,7 @@ print(f"Connecting to MongoDB at {host}:{port}")
 print(f"Database: {db_name}, Collection: {collection_name}")
 print(f"time noww: {datetime.now()}")
 # Specify the required fields using dot notation
-field_names = ["all_token_data","num_times_all_mentioned","last_mention_date"]
+field_names = ["token_contracts","mentioned_lastdate","total_mentions","daily_mentions","token_analytics_data"]
 
 reader = SimpleMongoReader(host, port)
 

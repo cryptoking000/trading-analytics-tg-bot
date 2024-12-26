@@ -125,22 +125,7 @@ async def start_payment(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     except Exception as e:
         logger.error(f"Error in payment process: {e}")
         await update.message.reply_text("Payment process failed. Please try again later.")
-async def start_recycle(update: Update, context: ContextTypes.DEFAULT_TYPE) ->None:
-    try:
-        print("👉start_recycle command----")
-        await start_dm_service()
-        await update.message.reply_text("DM service started successfully!")
-    except Exception as e:
-        logger.error(f"Error starting DM service: {e}")
-        await update.message.reply_text("Failed to start DM service. Please try again later.")
-async def stop_recycle(update: Update, context: ContextTypes.DEFAULT_TYPE) ->None:
-    try:
-        print("👉stop_recycle command----")
-        await stop_dm_service()
-        await update.message.reply_text("DM service stopped successfully!")
-    except Exception as e:
-        logger.error(f"Error stopping DM service: {e}")
-        await update.message.reply_text("Failed to stop DM service. Please try again later.")
+
 def main():
     try:
         application = ApplicationBuilder().token(bot_token).concurrent_updates(True).build()
@@ -152,8 +137,7 @@ def main():
         application.add_handler(CommandHandler("subscribe", start_payment))
         application.add_handler(CommandHandler("startdm", start_sendDm))
         application.add_handler(CommandHandler("stopdm", stop_sendDm))
-        application.add_handler(CommandHandler("startrecycle", start_recycle))
-        application.add_handler(CommandHandler("stoprecycle", stop_recycle))
+       
 
         application.add_handler(CallbackQueryHandler(button_handler))
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, address_message_handler, block=False))

@@ -49,7 +49,7 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
             if update.effective_chat.type == ChatType.PRIVATE:
                 # output_message = await tavily_search(input_message)
                 is_paid = db.get_user(update.message.chat_id).get('is_paid')
-                await update.message.reply_text("🤔 Processing your request, please wait...")
+                first_message = await update.message.reply_text("🤔 Processing your request, please wait...")
                 
                 try:
                     if not is_paid:
@@ -58,12 +58,14 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
                         output_message = await chatbot_db(input_message) 
                     # print(f"🤔 Response:", output_message)         
                     
+                    await first_message.delete()
                     await update.message.reply_text(text=output_message, parse_mode=ParseMode.MARKDOWN)
                 except Exception as e:
                     print(f"Error processing message: {e}")
+                    await first_message.delete()
                     await update.message.reply_text("Sorry, I encountered an error processing your request. Please try again.")               
             else:
-                pass
+                pass        
         else:#this is hex_data
             try:
                 await update.message.chat.send_action(action="typing")

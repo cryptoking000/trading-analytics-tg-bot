@@ -194,6 +194,7 @@ class UserDatabaseManager:
                     WHERE chat_id = ?
                 ''', (is_paid, chat_id))
                 conn.commit()
+                print(f"✅ User {chat_id} is_paid state{is_paid} updated successfully.")
                 return True
         except Exception as e:
             print(f"Error updating is_paid state: {e}")
@@ -228,7 +229,7 @@ class UserDatabaseManager:
                 # Check if user exists
                 cursor.execute('SELECT expired_time FROM user_data WHERE chat_id = ?', (chat_id,))
                 existing_user = cursor.fetchone()
-                print(f"👤 Checking user {chat_id}: {'Exists' if existing_user else 'New user'} is_group: {is_group}")
+                # print(f"👤 Checking user {chat_id}: {'Exists' if existing_user else 'New user'} is_group: {is_group}")
                 if existing_user:
                     # Always update username if provided
                     if 'username' in kwargs:
@@ -268,7 +269,7 @@ class UserDatabaseManager:
                     '''
                     values.append(chat_id)
                     cursor.execute(query, tuple(values))
-                    print("🔄 Executing UPDATE query")
+                    # print("🔄 Executing UPDATE query")
 
                 else:
                     # Create new user with minimal required fields
@@ -294,10 +295,10 @@ class UserDatabaseManager:
                         VALUES ({', '.join(placeholders)})
                     '''
                     cursor.execute(query, tuple(values))
-                    print("➕ Executing INSERT query")
+                    # print("➕ Executing INSERT query")
 
                 conn.commit()
-                print("✅ Database transaction committed successfully")
+                # print("✅ Database transaction committed successfully")
                 return True
 
         except Exception as e:

@@ -31,12 +31,14 @@ field_names = [
 
 reader = SimpleMongoReader(host, port)
 
-documents = reader.load_data(
-            db_name, collection_name, field_names
-)
-print("📖Documents loaded successfully.ai insight")
+
 async def ai_insight():
     try:
+        documents = reader.load_data(
+            db_name, collection_name, field_names
+        )
+        print("📖Documents loaded successfully.ai insight")
+        print(" ai insight starting...")
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
                You serve as a crypto advisor for daily reports, focusing on unusual token patterns, daily mentions, price changes, buyers, and volume trends to deliver actionable investment insights.
                 provide advanced AI for pattern recognition to deliver high-quality insights and predictions.
@@ -51,9 +53,7 @@ async def ai_insight():
                 """
 
         # Initialize index with callback manager
-        index = SummaryIndex.from_documents(
-            documents,
-        )
+        index = SummaryIndex.from_documents(documents)
         # Configure query engine with streaming and response mode
         query_engine = index.as_query_engine(
             llm=llm,
@@ -63,12 +63,13 @@ async def ai_insight():
 
         start_time = datetime.now()
 
-        response = await query_engine.aquery(prompt)
+        response = query_engine.query(prompt)
 
         end_time = datetime.now()
         print(f"Query response received in {end_time - start_time} seconds.")
+        print(f"Query response received.-----------:{response}")
         
-        return str(response)
+        return response
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -76,4 +77,3 @@ async def ai_insight():
 
 # if __name__ == "__main__":
 #     response=asyncio.run(ai_insight())
-#     print(f"Query response received.-----------:{response}")

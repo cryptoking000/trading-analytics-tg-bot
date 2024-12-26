@@ -31,21 +31,18 @@ field_names = [
 
 reader = SimpleMongoReader(host, port)
 
-documents = reader.load_data(
-            db_name, collection_name, field_names
-)
-print("📖Documents loaded successfully. ai_insight")
 async def chatbot_db(input_message):
     try:
-        # Initialize LLM with better error handling
-       
-        # index = VectorStoreIndex.from_documents(documents)
-        index = SummaryIndex.from_documents(
-                    documents,
-                )
+        documents = reader.load_data(
+                    db_name, collection_name, field_names
+        )
+        print("📖Documents loaded successfully. ai_insight")
+        
+        index = SummaryIndex.from_documents(documents,)
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
                     As a professional cryptocurrency advisor and investment expert, 
                     please answer the following question concisely: {input_message}. 
+                    Don't provide real-time data, just answer the question in the my database.
                     """      
 
         # chat_engine = index.as_chat_engine(chat_mode="condense_question", verbose=True)
@@ -54,7 +51,7 @@ async def chatbot_db(input_message):
         response = chat_engine.chat(prompt)
         end_time = datetime.now()
         print(f"Query response received in {end_time - start_time} seconds.")
-        print(response)
+        print("🤔",response)
         return str(response)
     except Exception as e:
         print(f"An error occurred: {e}")

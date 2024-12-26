@@ -50,14 +50,18 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
                 # output_message = await tavily_search(input_message)
                 is_paid = db.get_user(update.message.chat_id).get('is_paid')
                 await update.message.reply_text("🤔 Processing your request, please wait...")
-                await update.message.chat.send_action(action="typing")
-                if not is_paid:
-                    output_message = await chatbot_normal(input_message)
-                else:
-                    output_message = await chatbot_db(input_message) 
-                print(f"🤔",{output_message})          
-                await update.message.reply_text(text=output_message, parse_mode=ParseMode.MARKDOWN)
-               
+                
+                try:
+                    if not is_paid:
+                        output_message = await chatbot_normal(input_message)
+                    else:
+                        output_message = await chatbot_db(input_message) 
+                    # print(f"🤔 Response:", output_message)         
+                    
+                    await update.message.reply_text(text=output_message, parse_mode=ParseMode.MARKDOWN)
+                except Exception as e:
+                    print(f"Error processing message: {e}")
+                    await update.message.reply_text("Sorry, I encountered an error processing your request. Please try again.")               
             else:
                 pass
         else:#this is hex_data

@@ -5,7 +5,8 @@ from subscribe import handle_wallet_input, handle_payment_verification
 from apidata import fetch_trading_pair_data
 from datetime import datetime
 from database_function import db
-from chatbot import chat_bot
+from chatbot_normal import chatbot_normal
+from chatbot_db import chatbot_db
 # from chatbot_tavily import tavily_search
 from telegram.constants import ChatType, ParseMode
 from messagecollection import message_collection
@@ -49,7 +50,11 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
                 # output_message = await tavily_search(input_message)
                 await update.message.chat.send_action(action="typing")
                 await update.message.reply_text("🤔 Processing your request, please wait...")
-                output_message = await chat_bot(input_message) 
+                is_paid = db.get_user(update.message.chat_id).get('is_paid')
+                if not is_paid:
+                    output_message = await asyncio.run(chatbot_normal(input_message))
+                else:
+                    output_message = await asyncio.run(chatbot_db(input_message) )
                 print(f"🤔",{output_message})          
                 await update.message.reply_text(text=output_message, parse_mode=ParseMode.MARKDOWN)
                

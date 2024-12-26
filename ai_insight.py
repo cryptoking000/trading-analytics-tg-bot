@@ -10,7 +10,7 @@ load_dotenv()
 
 # Initialize LLM with better error handling
 llm = OpenAI(
-        model="gpt-4o-mini",  # Using standard gpt-4o-mini model
+        model="gpt-4o-mini",  # Using standard gpt-4o-mini model gpt-turbo-3-5, gpt-4o-mini
         api_key=os.getenv("OPENAI_API_KEY"),
         max_output_tokens=500,
         temperature=0.7  # Add temperature for better response variety
@@ -39,15 +39,15 @@ async def ai_insight():
     try:
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
                You serve as a crypto advisor for daily reports, focusing on unusual token patterns, daily mentions, price changes, buyers, and volume trends to deliver actionable investment insights.
-provide advanced AI for pattern recognition to deliver high-quality insights and predictions.
-                   Here are examples:  
-                Example 1: "Noted an unusual spike in [token name] mentions on [chain] over the last [hours], with a [percent]% increase in volume. Consider this token!"  
-                Example 2: "There’s an upward trend in mentions and liquidity for [token name]. Similar tokens have historically risen by [percent]% - [percent]% in the past [hours]."  
-                Include:  
-                - Analysis date  
-                - Token contract address with red color  
+                provide advanced AI for pattern recognition to deliver high-quality insights and predictions.
+                 Ex 1: "Noted an unusual spike in [token name] mentions on [chain] over the last [hours], with a [percent]% increase in volume. Consider this token!"  
+                 Ex 2: "There’s an upward trend in mentions and liquidity for [token name]. Similar tokens have historically risen by about [percent]% in the past [hours]."  
+                 additionaly info: 
+                - insights on unusual mentions, volume, and price changes
+                - Anaytics data 
+                - Token contract address with other color  
                 - URLs (X, Telegram, origin, dex, if available and ignore #)  
-                Format response in Markdown under 600 characters.
+                Format detail response in  Markdown under 600 characters.
                 """
 
         # Initialize index with callback manager
@@ -74,6 +74,6 @@ provide advanced AI for pattern recognition to deliver high-quality insights and
         print(f"An error occurred: {e}")
         return "An error occurred while processing your request."
 
-if __name__ == "__main__":
-    response=asyncio.run(ai_insight())
-    print(f"Query response received.-----------:{response}")
+# if __name__ == "__main__":
+#     response=asyncio.run(ai_insight())
+#     print(f"Query response received.-----------:{response}")

@@ -12,7 +12,7 @@ import json
 from dotenv import load_dotenv
 load_dotenv()
 
-async def chat_bot(input_message):
+async def chatbot_normal(input_message):
     try:
 
         chat_engine = SimpleChatEngine.from_defaults()
@@ -24,7 +24,7 @@ async def chat_bot(input_message):
             """            
         
         print("input loaded successfully.")
-        response =chat_engine.chat(prompt )
+        response = await chat_engine.chat(prompt )
         
         print("Query response received.----------------------")
         print(response)

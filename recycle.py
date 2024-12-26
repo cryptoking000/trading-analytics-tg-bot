@@ -44,7 +44,7 @@ async def send_dm():
         if not users:
             print("No users found in database.")
             return
-        ai_insight_text = await ai_insight()
+        ai_insight_text = await asyncio.run( ai_insight())
 
         for user in users:
             chat_id = user.get('chat_id')

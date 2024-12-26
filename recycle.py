@@ -1,8 +1,6 @@
 import asyncio
 import telegram
 from telegram.constants import ParseMode
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
-from telegram  import Update
 
 from database_function import db
 import os
@@ -10,7 +8,6 @@ from dotenv import load_dotenv
 from ai_insight import ai_insight
 from pymongo import MongoClient
 from datetime import datetime
-from messagecollection import main
 
 load_dotenv()
 mongo_uri = os.getenv("MONGO_URI")
@@ -46,7 +43,6 @@ async def send_dm():
         if not users:
             print("No users found in database.")
             return
-        first_message = await send_message("🤔 Processing your request, please wait...")
 
         ai_insight_text = await ai_insight()
 
@@ -61,6 +57,7 @@ async def send_dm():
             username = user.get('username', 'User')
             
             if chat_id not in processed_chat_ids:
+                first_message = await send_message("🤔 Processing your request, please wait...", chat_id=chat_id)
                 message = (
                     f"Hello {username}!\n\n"
                     f"{' Thank you for being our premium member!' if is_paid else '💫 Upgrade to premium for more features!'}\n"
@@ -93,9 +90,7 @@ async def stop_dm_service():
 async def periodic_dm():
     while True:
         try:
-            main()
-            # print("Message collection and token data update completed")
-            # await asyncio.sleep(10)
+           
             
             print("👇👇👇Periodic DM service starting...")
             await send_dm()
@@ -116,22 +111,22 @@ async def start_dm_service():
         dm_task = asyncio.create_task(periodic_dm())
     else:
         print("DM service is already running")
-async def start_recycle(update: Update, context: ContextTypes.DEFAULT_TYPE) ->None:
-    try:
-        print("👉start_recycle command----")
-        await start_dm_service()
-        await update.message.reply_text("DM service started successfully!")
-    except Exception as e:
-        print(f"Error starting DM service: {e}")
-        await update.message.reply_text("Failed to start DM service. Please try again later.")
-async def stop_recycle(update: Update, context: ContextTypes.DEFAULT_TYPE) ->None:
-    try:
-        print("👉stop_recycle command----")
-        await stop_dm_service()
-        await update.message.reply_text("DM service stopped successfully!")
-    except Exception as e:
-        print(f"Error stopping DM service: {e}")
-        await update.message.reply_text("Failed to stop DM service. Please try again later.")
+# async def start_recycle(update: Update, context: ContextTypes.DEFAULT_TYPE) ->None:
+#     try:
+#         print("👉start_recycle command----")
+#         await start_dm_service()
+#         await update.message.reply_text("DM service started successfully!")
+#     except Exception as e:
+#         print(f"Error starting DM service: {e}")
+#         await update.message.reply_text("Failed to start DM service. Please try again later.")
+# async def stop_recycle(update: Update, context: ContextTypes.DEFAULT_TYPE) ->None:
+#     try:
+#         print("👉stop_recycle command----")
+#         await stop_dm_service()
+#         await update.message.reply_text("DM service stopped successfully!")
+#     except Exception as e:
+#         print(f"Error stopping DM service: {e}")
+#         await update.message.reply_text("Failed to stop DM service. Please try again later.")
 # if __name__ == "__main__":
 #     try:
 #         print("👉recycle running----")

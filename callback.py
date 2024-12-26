@@ -48,9 +48,9 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
         if hex_data == "":  # this is a normal message
             if update.effective_chat.type == ChatType.PRIVATE:
                 # output_message = await tavily_search(input_message)
-                await update.message.chat.send_action(action="typing")
-                await update.message.reply_text("🤔 Processing your request, please wait...")
                 is_paid = db.get_user(update.message.chat_id).get('is_paid')
+                await update.message.reply_text("🤔 Processing your request, please wait...")
+                await update.message.chat.send_action(action="typing")
                 if not is_paid:
                     output_message = await chatbot_normal(input_message)
                 else:

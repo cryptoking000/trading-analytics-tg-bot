@@ -44,13 +44,14 @@ async def chatbot_db(input_message):
                     documents,
                 )
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
-                    As a professional cryptocurrency advisor and investment expert, please answer the following question concisely: {input_message}. Focus on the question and relevant principles, strategies, and data. Keep your response brief yet informative, and use simple language.
+                    As a professional cryptocurrency advisor and investment expert, please answer the following question concisely: {input_message}. 
+                    Keep your response brief yet informative, and use simple language.
                     """      
 
         # chat_engine = index.as_chat_engine(chat_mode="condense_question", verbose=True)
         start_time = datetime.now()
         chat_engine = index.as_chat_engine(chat_mode="react", llm=llm, verbose=True)
-        response = await chat_engine.chat(prompt)
+        response = chat_engine.chat(prompt)
         end_time = datetime.now()
         print(f"Query response received in {end_time - start_time} seconds.")
         print(response)

@@ -19,11 +19,11 @@ async def chatbot_normal(input_message):
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
             You are a professional cryptocurrency advisor and investment expert.
             Please provide a concise, clear answer to the following question: {input_message}
-            Keep your response brief but informative, using simple language.
+            
             """            
         
         print("input loaded successfully.")
-        response = chat_engine.chat(prompt )
+        response = chat_engine.chat(prompt)
         
         print("Query response received.----------------------")
         print(response)

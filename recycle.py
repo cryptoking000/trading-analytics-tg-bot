@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from ai_insight import ai_insight
 from pymongo import MongoClient
 from datetime import datetime
-from messagecollection import get_token_contract_data, message_collection
+from messagecollection import main
 
 load_dotenv()
 mongo_uri = os.getenv("MONGO_URI")

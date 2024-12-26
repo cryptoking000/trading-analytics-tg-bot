@@ -34,7 +34,7 @@ reader = SimpleMongoReader(host, port)
 documents = reader.load_data(
             db_name, collection_name, field_names
 )
-
+print("📖Documents loaded successfully.ai insight")
 async def ai_insight():
     try:
         prompt = f"""Today's date is {datetime.now().strftime('%d/%m/%Y')}.\n
@@ -68,7 +68,7 @@ async def ai_insight():
         end_time = datetime.now()
         print(f"Query response received in {end_time - start_time} seconds.")
         
-        return response
+        return str(response)
 
     except Exception as e:
         print(f"An error occurred: {e}")

@@ -232,7 +232,7 @@ async def main():
             except Exception as e:
                 print(f"Error processing channel {channel_username}: {e}")
 
-if __name__ == "__main__":
-    asyncio.run(main())
-    print("🎁 Offset date:", offset_date)
-    print("🎁 Finished at:", datetime.now())
+# if __name__ == "__main__":
+#     asyncio.run(main())
+#     print("🎁 Offset date:", offset_date)
+#     print("🎁 Finished at:", datetime.now())

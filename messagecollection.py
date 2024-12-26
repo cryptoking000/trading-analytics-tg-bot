@@ -106,6 +106,7 @@ async def all_day_mention_initialization():
     """Initialize mention data for all days."""
     try:
         print("🎈initializing....")
+        start_time = datetime.now()
         for token_doc in token_collection.find():
             token_contracts = token_doc.get("token_contracts")
             token_contract_data = get_token_contract_data(token_contracts)
@@ -116,7 +117,9 @@ async def all_day_mention_initialization():
                     "$push": {"token_analytics_data": token_contract_data if token_contract_data else ""}
                 }
             )
+        end_time = datetime.now()
         print("🎈initialization complete")
+        print(f"Query response received in {end_time - start_time} seconds.")
     except Exception as e:
         print(f"Error resetting day mentions: {e}")
 def message_collection(message):
@@ -232,7 +235,7 @@ async def main():
             except Exception as e:
                 print(f"Error processing channel {channel_username}: {e}")
 
-# if __name__ == "__main__":
-#     asyncio.run(main())
-#     print("🎁 Offset date:", offset_date)
-#     print("🎁 Finished at:", datetime.now())
+if __name__ == "__main__":
+    asyncio.run(main())
+    print("🎁 Offset date:", offset_date)
+    print("🎁 Finished at:", datetime.now())

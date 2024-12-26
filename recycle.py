@@ -50,6 +50,7 @@ async def send_dm():
                 print(f"Invalid chat_id for user: {user}")
                 continue
                 
+            db.update_is_paid_state(chat_id)
             is_paid = user.get('is_paid', False)
             username = user.get('username', 'User')
             

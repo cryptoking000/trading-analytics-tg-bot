@@ -38,7 +38,7 @@ class UserDatabaseManager:
                             registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             last_active TIMESTAMP,
                             is_paid BOOLEAN DEFAULT FALSE,
-                            expired_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            expired_time TIMESTAMP DEFAULT (datetime(CURRENT_TIMESTAMP, '+3 days')),
                             total_paid_budget INTEGER DEFAULT 0,
                             last_paid_date TIMESTAMP,
                             transaction_hash TEXT,
@@ -176,7 +176,29 @@ class UserDatabaseManager:
         except Exception as e:
             print(f"Error getting user: {e}")
             return None
-
+    def update_is_paid_state(self, chat_id: int) -> bool:
+        """Update is_paid state for a user"""
+        try:
+            with sqlitecloud.connect(self.connection_string) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT expired_time FROM user_data WHERE chat_id = ?', (chat_id,))
+                result = cursor.fetchone()
+                if result[0] is None:
+                    expired_time = datetime.now()
+                else:
+                    expired_time = datetime.strptime(result[0], '%Y-%m-%d %H:%M:%S')
+                is_paid = 1 if datetime.now() < expired_time else 0
+                cursor.execute('''
+                    UPDATE user_data
+                    SET is_paid = ?
+                    WHERE chat_id = ?
+                ''', (is_paid, chat_id))
+                conn.commit()
+                return True
+        except Exception as e:
+            print(f"Error updating is_paid state: {e}")
+            return False        
+        
     def update_user_data(self, chat_id: int, **kwargs) -> bool:
         """Update user data, always updating last_active and username if provided
         

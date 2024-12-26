@@ -197,7 +197,7 @@ class UserDatabaseManager:
                 current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 update_fields = ['last_active = ?']
                 values = [current_time]
-                print(f"🕒 Setting last_active to {current_time}")
+                # print(f"🕒 Setting last_active to {current_time}")
 
                 is_group = 1 if str(chat_id).startswith('-100') else 0
                 update_fields.append('is_group = ?')
@@ -212,7 +212,7 @@ class UserDatabaseManager:
                     if 'username' in kwargs:
                         update_fields.append('username = ?')
                         values.append(kwargs['username'])
-                        print(f"📝 Updating username to: {kwargs['username']}")
+                        # print(f"📝 Updating username to: {kwargs['username']}")
 
                     # Update paid status based on expired time
                     if existing_user:  # If expired time exists
@@ -224,8 +224,8 @@ class UserDatabaseManager:
                         is_paid = 1 if datetime.now() < expired_time else 0
                         update_fields.append('is_paid = ?')
                         values.append(is_paid)
-                        print(f"💰 Subscription status: {'Active' if is_paid else 'Expired'}")
-                        print(f"📅 expired time: {expired_time}")     
+                        # print(f"💰 Subscription status: {'Active' if is_paid else 'Expired'}")
+                        # print(f"📅 expired time: {expired_time}")     
                     else:
                         is_paid = 0  # Default to False if no expired time
                         update_fields.append('is_paid = ?')
@@ -236,7 +236,7 @@ class UserDatabaseManager:
                         if field not in ['username', 'chat_id'] and value is not None:
                             update_fields.append(f'{field} = ?')
                             values.append(value)
-                            print(f"✏️ Updating {field} to: {value}")
+                            # print(f"✏️ Updating {field} to: {value}")
 
                     # Execute update
                     query = f'''
@@ -264,7 +264,7 @@ class UserDatabaseManager:
                         if field not in ['username', 'chat_id', 'last_active']:
                             fields.append(field)
                             values.append(value)
-                            print(f"📝 Setting initial {field}: {value}")
+                            # print(f"📝 Setting initial {field}: {value}")
 
                     placeholders = ['?' for _ in fields]
                     query = f'''

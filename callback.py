@@ -52,9 +52,9 @@ async def address_message_handler(update: Update, context: ContextTypes.DEFAULT_
                 await update.message.reply_text("🤔 Processing your request, please wait...")
                 is_paid = db.get_user(update.message.chat_id).get('is_paid')
                 if not is_paid:
-                    output_message = await asyncio.run(chatbot_normal(input_message))
+                    output_message = await chatbot_normal(input_message)
                 else:
-                    output_message = await asyncio.run(chatbot_db(input_message) )
+                    output_message = await chatbot_db(input_message) 
                 print(f"🤔",{output_message})          
                 await update.message.reply_text(text=output_message, parse_mode=ParseMode.MARKDOWN)
                

@@ -89,7 +89,7 @@ def get_token_contract_data(token_contracts):
             "price_change_h1": safe_get(pair_data, "priceChange", "h1"),   
             "txns_buys_h24": safe_get(pair_data, "txns", "h24", "buys"),
             "txns_sells_h24": safe_get(pair_data, "txns", "h24", "sells"),
-             "pairCreatedAt": safe_get(pair_data, "pairCreatedAt"),
+            #  "pairCreatedAt": safe_get(pair_data, "pairCreatedAt"),
             "origin_url": next((website.get("url") for website in safe_get(pair_data, "info", "websites", default=[]) 
                               if website.get("label") == "Website"), "#"),
             "telegram_url": next((social.get("url") for social in safe_get(pair_data, "info", "socials", default=[])
@@ -169,7 +169,7 @@ def message_collection(message):
         )       
         # if mention_flag == 0:#run once a day(main)
             # Check if arrays exceed max size and update accordingly
-        if len(existing_entry.get("token_analytics_data", [])) > 3:
+        if len(existing_entry.get("token_analytics_data", [])) > 1:
             print("🧨🧨🧨🧨🧨poped")
             token_collection.update_one(
                 {"_id": existing_entry["_id"]},
